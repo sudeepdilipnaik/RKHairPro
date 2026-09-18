@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Leave</h1><p>1 paid leave per month; further leave is unpaid. Your weekly off ({{ ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][current_user.weekly_off] }}) is paid.</p></div></div>
+<div class="grid g-main">
+  <div class="card"><div class="card-h"><h2>My requests</h2></div>
+    {% for r in rows %}<div class="list-item"><div class="grow"><b>{{ r.from_date|dfmt('%d %b') }}{% if r.days > 1 %} – {{ r.to_date|dfmt('%d %b') }}{% endif %}</b> · {{ r.days }} day(s) · {{ r.kind|title }}<br><small>{{ r.reason or '' }}</small></div>{{ ui.status(r.status) }}</div>{% else %}<div class="empty">No leave requests yet.</div>{% endfor %}</div>
+  <form method="post" class="card" style="align-self:start"><div class="card-h"><h2>Apply for leave</h2></div><div class="grid" style="gap:12px">
+    <div class="field"><label>From</label><input type="date" name="from" min="{{ today.isoformat() }}" required></div><div class="field"><label>To</label><input type="date" name="to" min="{{ today.isoformat() }}" required></div>
+    <div class="field"><label>Type</label><select name="kind"><option value="paid">Paid leave (1 / month)</option><option value="unpaid">Unpaid leave</option><option value="sick">Sick leave</option></select></div>
+    <div class="field"><label>Reason</label><input name="reason"></div><button class="btn gold">Send request</button></div></form>
+</div>
+{% endblock %}

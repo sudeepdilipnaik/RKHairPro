@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set sup = current_user.is_super %}
+<div class="page-h"><div><h1>Settings</h1><p>Company-wide rules. Every value here can be changed at any time.</p></div></div>
+<div class="tabs">{% for k, l, ic in [('business','Business','home'),('contact','Contact & social','phone'),('branches','Branches','pin'),('finance','Finance & GST','wallet'),('hr','HR & payroll','briefcase'),('booking','Booking rules','calendar'),('whatsapp','WhatsApp','chat'),('templates','Message templates','send'),('data','Demo data','refresh')] %}<a class="{{ 'active' if tab == k }}" href="?tab={{ k }}">{{ ui.icon(ic) }} {{ l }}</a>{% endfor %}</div>
+
+{% macro form_open(t) %}<form method="post" action="{{ url_for('sett.save') }}" class="card" style="max-width:860px"><input type="hidden" name="tab" value="{{ t }}">{% endmacro %}
+
+{% if tab == 'business' %}{{ form_open('business') }}<div class="form-grid">
+  <div class="field"><label>Business name</label><input name="business_name" value="{{ v.business_name }}"></div><div class="field"><label>Owner</label><input name="owner_name" value="{{ v.owner_name }}"></div>
+  <div class="field span2"><label>Tagline</label><input name="tagline" value="{{ v.tagline }}"></div>
+  <div class="field span2"><label>Google review link (sent to happy clients)</label><input name="google_review_link" value="{{ v.google_review_link }}"></div><div class="field"><label>GSTIN</label><input name="gstin" value="{{ v.gstin }}"></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}</form>
+
+{% elif tab == 'contact' %}{{ form_open('contact') }}
+  <div class="flash" style="margin-bottom:14px"><span>⚠ The numbers and social links below are <b>sample placeholders</b>. Enter RK Hair Pro's real ones – the public website, call button and WhatsApp button update instantly.</span></div>
+  <div class="form-grid">
+  <div class="field"><label>Central / bookings phone number</label><input name="phone_central" value="{{ v.phone_central }}" placeholder="10-digit number"><span class="hint">Shown in the call chooser as the centralised number. Each branch's own number is set under Branches.</span></div>
+  <div class="field"><label>WhatsApp number</label><input name="whatsapp_number" value="{{ v.whatsapp_number }}" placeholder="10-digit WhatsApp number"><span class="hint">Opens a direct chat: wa.me link.</span></div>
+  <div class="field span2"><label>WhatsApp opening message</label><input name="wa_greeting" value="{{ v.wa_greeting }}"></div>
+  <div class="field span2"><label>Instagram page link</label><input name="instagram" value="{{ v.instagram }}" placeholder="https://instagram.com/yourpage"></div>
+  <div class="field span2"><label>Facebook page link</label><input name="facebook" value="{{ v.facebook }}" placeholder="https://facebook.com/yourpage"></div>
+  <div class="field span2"><label>YouTube channel link (optional)</label><input name="youtube" value="{{ v.youtube }}"></div>
+  <div class="field"><label>Email (optional)</label><input name="email" value="{{ v.email }}"></div><div class="field"><label>Website address</label><input name="website" value="{{ v.website }}" placeholder="https://yourname.pythonanywhere.com"><span class="hint">Used for the booking and feedback links inside WhatsApp messages. Leave blank to use the address you are visiting.</span></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}<p class="hint mt-s">Branch phone numbers and addresses: Settings → Branches. Videos and testimonials: Marketing → Website videos.</p></form>
+
+{% elif tab == 'branches' %}
+<div class="row between mb"><span class="muted">Add a new branch any time – it's ready to trade the moment it's created.</span>{% if sup %}<button class="btn gold" data-modal="brModal" data-fill-id="" data-fill-name="" data-fill-code="">{{ ui.icon('plus') }} Add branch</button>{% endif %}</div>
+<div class="grid g2">{% for b in branches %}<div class="card"><div class="card-h"><h2>{{ ui.icon('pin') }} {{ b.name }} <span class="badge">{{ b.code }}</span></h2>{{ ui.badge('Active','ok') if b.active else ui.badge('Closed','bad') }}</div>
+  <dl class="kv"><dt>Address</dt><dd>{{ b.address }}</dd><dt>Phone</dt><dd>{{ b.phone }}</dd><dt>Timings</dt><dd>{{ b.open_time|tfmt }} – {{ b.close_time|tfmt }} · {{ b.slot_minutes }}-min grid</dd><dt>Monthly target</dt><dd>{{ b.monthly_target|inr }}</dd></dl>
+  {% if sup %}<button class="btn sm mt-s" data-modal="brModal" data-fill-id="{{ b.id }}" data-fill-name="{{ b.name }}" data-fill-code="{{ b.code }}" data-fill-address="{{ b.address or '' }}" data-fill-phone="{{ b.phone or '' }}" data-fill-open_time="{{ b.open_time }}" data-fill-close_time="{{ b.close_time }}" data-fill-slot_minutes="{{ b.slot_minutes }}" data-fill-monthly_target="{{ b.monthly_target|int }}" data-fill-active="{{ 1 if b.active else 0 }}">Edit</button>{% endif %}</div>{% endfor %}</div>
+<dialog class="modal" id="brModal"><form method="post" action="{{ url_for('sett.branch') }}"><input type="hidden" name="id"><div class="m-h"><h2>Branch</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div><div class="m-b"><div class="form-grid">
+  <div class="field span2"><label>Branch name</label><input name="name" required></div><div class="field"><label>Short code (for invoices)</label><input name="code" maxlength="6" required placeholder="e.g. TDW"></div><div class="field span2"><label>Address</label><input name="address"></div><div class="field"><label>Phone</label><input name="phone"></div>
+  <div class="field"><label>Opens</label><input type="time" name="open_time" value="10:00"></div><div class="field"><label>Closes</label><input type="time" name="close_time" value="21:00"></div><div class="field"><label>Slot grid (minutes)</label><input name="slot_minutes" type="number" value="30" step="15" min="15"></div>
+  <div class="field"><label>Monthly revenue target ₹</label><input name="monthly_target" type="number" value="0"></div><div class="field"><label>Status</label><select name="active"><option value="1">Active</option><option value="0">Closed</option></select></div></div></div><div class="m-f"><button class="btn gold">Save branch</button></div></form></dialog>
+
+{% elif tab == 'finance' %}{{ form_open('finance') }}<div class="form-grid">
+  <label class="check full"><input type="checkbox" name="gst_enabled" value="1" {{ 'checked' if v.gst_enabled == '1' }}> Charge GST on client bills (CGST + SGST, shown separately and treated as a liability, not income)</label>
+  <div class="field"><label>GST rate %</label><input name="gst_rate" type="number" step="0.5" value="{{ v.gst_rate }}"></div>
+  <div class="field"><label>Financial year starts in month</label><select name="fy_start_month"><option value="4" {{ 'selected' if v.fy_start_month == '4' }}>April (1 Apr – 31 Mar)</option><option value="1" {{ 'selected' if v.fy_start_month == '1' }}>January (calendar year)</option></select></div>
+  <div class="field"><label>Loyalty: 1 point for every ₹</label><input name="loyalty_earn_per" type="number" value="{{ v.loyalty_earn_per }}"></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}<p class="hint mt-s">"YTD" in every report and dashboard means from the start of the financial year.</p></form>
+
+{% elif tab == 'hr' %}{{ form_open('hr') }}<div class="form-grid">
+  <div class="field"><label>Default monthly salary ₹</label><input name="default_salary" type="number" value="{{ v.default_salary }}"></div><div class="field"><label>Default commission %</label><input name="default_commission" type="number" step="0.5" value="{{ v.default_commission }}"></div>
+  <div class="field"><label>Salary days basis (per-day = salary ÷ this)</label><input name="salary_days_basis" type="number" value="{{ v.salary_days_basis }}"></div><div class="field"><label>Grace minutes (late / early)</label><input name="grace_minutes" type="number" value="{{ v.grace_minutes }}"></div>
+  <div class="field"><label>Late marks that equal a half-day deduction</label><input name="late_marks_per_halfday" type="number" value="{{ v.late_marks_per_halfday }}"></div><div class="field"><label>Early exits that equal a half-day deduction</label><input name="early_exits_per_halfday" type="number" value="{{ v.early_exits_per_halfday }}"></div>
+  <div class="field"><label>Below this many hours = absent</label><input name="half_day_min_hours" type="number" step="0.5" value="{{ v.half_day_min_hours }}"></div><div class="field"><label>At least this many hours = full day</label><input name="full_day_min_hours" type="number" step="0.5" value="{{ v.full_day_min_hours }}"></div>
+  <div class="field"><label>Paid leaves per month</label><input name="paid_leaves_per_month" type="number" value="{{ v.paid_leaves_per_month }}"></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}<p class="hint mt-s">Changes apply to future attendance calculations and payroll runs. Already-paid payrolls are never altered.</p></form>
+
+{% elif tab == 'booking' %}{{ form_open('booking') }}<div class="form-grid">
+  <div class="field"><label>How many days ahead can clients book online?</label><input name="booking_advance_days" type="number" value="{{ v.booking_advance_days }}"></div>
+  <div class="field"><label>Minimum notice for online booking (minutes)</label><input name="booking_min_notice_min" type="number" value="{{ v.booking_min_notice_min }}"></div>
+  <div class="field"><label>WhatsApp reminder before appointment (minutes)</label><input name="reminder_minutes" type="number" value="{{ v.reminder_minutes }}"></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}</form>
+
+{% elif tab == 'whatsapp' %}{{ form_open('whatsapp') }}<div class="form-grid">
+  <div class="field"><label>Mode</label><select name="whatsapp_mode"><option value="simulated" {{ 'selected' if v.whatsapp_mode != 'live' }}>Simulated (demo) – messages are logged in the Outbox</option><option value="live" {{ 'selected' if v.whatsapp_mode == 'live' }}>Live – send through the provider below</option></select></div>
+  <div class="field"><label>Provider</label><select name="whatsapp_provider"><option value="">— choose —</option>{% for p in ['Meta WhatsApp Cloud API','Twilio','Gupshup','Interakt','Wati'] %}<option {{ 'selected' if v.whatsapp_provider == p }}>{{ p }}</option>{% endfor %}</select></div>
+  <div class="field"><label>API key / token</label><input name="whatsapp_api_key" type="password" value="{{ v.whatsapp_api_key }}"></div><div class="field"><label>Sender number / phone-number ID</label><input name="whatsapp_sender" value="{{ v.whatsapp_sender }}"></div></div>
+  {% if sup %}<button class="btn gold mt">Save</button>{% endif %}<p class="hint mt-s">To go live you need an approved WhatsApp Business account and message templates. Every message in the app already goes through one sending function, so switching is a configuration change, not a rebuild.</p></form>
+
+{% elif tab == 'templates' %}
+<form method="post" action="{{ url_for('sett.templates') }}" class="grid" style="max-width:900px">
+  <div class="card flat"><span class="muted">Placeholders such as <code>{client}</code>, <code>{date}</code>, <code>{time}</code>, <code>{amount}</code> are filled automatically. Clear a box to restore the default.</span></div>
+  {% for k, title, txt in tpls %}<div class="card"><div class="field"><label>{{ title }}</label><textarea name="tpl_{{ k }}" rows="5" {{ 'readonly' if not sup }}>{{ txt }}</textarea></div></div>{% endfor %}
+  {% if sup %}<div><button class="btn gold lg">Save templates</button></div>{% endif %}</form>
+
+{% elif tab == 'data' %}
+<div class="grid g2" style="max-width:980px">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('refresh') }} Reset demo data</h2></div><p class="muted">Re-creates the sample business: 2 branches, 12 employees, 520 clients, services, ~3,000 bills, expenses, stock, attendance and payroll. Takes about 1–2 minutes.</p>
+    {% if sup %}<form method="post" action="{{ url_for('sett.reset_demo') }}" data-confirm="This deletes ALL current data and re-creates the demo. Continue?"><input type="hidden" name="mode" value="demo"><div class="field"><label>Type RESET to confirm</label><input name="confirm" required></div><button class="btn mt-s">Reset to demo data</button></form>{% endif %}</div>
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('trash') }} Start fresh for go-live</h2></div><p class="muted">Deletes all sample data and keeps only the owner login, the two branches, income/expense heads and default accounts. You then add your real employees, services, stock and opening balances.</p>
+    {% if sup %}<form method="post" action="{{ url_for('sett.reset_demo') }}" data-confirm="This permanently deletes ALL data. Are you absolutely sure?"><input type="hidden" name="mode" value="clean"><div class="field"><label>Type RESET to confirm</label><input name="confirm" required></div><button class="btn danger mt-s">Erase everything & start fresh</button></form>{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

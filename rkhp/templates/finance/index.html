@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Finance</h1><p>{{ label }} · {{ 'All branches' if not scope_branch else scope_branch.name }}</p></div>
+  <div class="row no-print"><a class="btn gold" href="{{ url_for('fin.entry', kind='in') }}">{{ ui.icon('plus') }} Add income</a><a class="btn" href="{{ url_for('fin.entry', kind='out') }}">{{ ui.icon('plus') }} Add expense</a>
+    <a class="btn" href="{{ url_for('fin.entry', kind='out', petty=1) }}">Petty cash</a><button class="btn" data-modal="xferModal">{{ ui.icon('sync') }} Transfer</button><button class="btn" onclick="window.print()">{{ ui.icon('printer') }}</button></div></div>
+{% include 'finance/_tabs.html' %}
+{{ ui.period_bar(key, d1, d2) }}
+
+<div class="kpi-grid mb">
+  {{ ui.kpi('Money received', S.in_total|inr, 'Cash ' + (S.mode_in.get('cash',0))|inr + ' · UPI ' + (S.mode_in.get('upi',0))|inr + ' · Card ' + (S.mode_in.get('card',0))|inr) }}
+  {{ ui.kpi('Money paid out', S.out_total|inr, 'incl. tips payout & vendor payments') }}
+  {{ ui.kpi('Business income', P.total_revenue|inr, 'services + retail products') }}
+  {{ ui.kpi('Net profit', P.net_profit|inr, P.margin|string + '% margin after stock cost & expenses') }}
+  {{ ui.kpi('Tips collected', S.tips_in|inr, S.tips_out|inr + ' paid out') }}
+</div>
+
+<div class="card mb"><div class="card-h"><h2>{{ ui.icon('wallet') }} Where is the money right now?</h2><span class="badge gold">as at {{ d2|dfmt }}</span></div>
+  <div class="kpi-grid">
+    {{ ui.kpi('Cash in counter', S.cash_total|inr, 'opening ' + S.cash_opening|inr, plain=True) }}
+    {{ ui.kpi('Bank', S.bank_total|inr, plain=True) }}{{ ui.kpi('UPI accounts', S.upi_total|inr, plain=True) }}{{ ui.kpi('Card settlement', S.card_total|inr, plain=True) }}
+  </div>
+  <div class="table-wrap mt"><table class="tbl"><thead><tr><th>Account</th><th>Type</th><th>Branch</th><th class="num">Opening</th><th class="num">Money in</th><th class="num">Money out</th><th class="num">Transfers</th><th class="num">Closing</th></tr></thead><tbody>
+    {% for r in S.accounts %}<tr onclick="location='{{ url_for('fin.account_view', aid=r.acc.id) }}'" style="cursor:pointer"><td><b>{{ r.acc.name }}</b></td><td>{{ r.acc.type_label }}</td><td>{{ r.acc.branch.name if r.acc.branch else 'Company' }}</td>
+      <td class="num">{{ r.opening|inr }}</td><td class="num ok">{{ r.inflow|inr }}</td><td class="num bad">{{ r.outflow|inr }}</td><td class="num">{{ r.xfer|inr }}</td><td class="num"><b>{{ r.closing|inr }}</b></td></tr>{% endfor %}
+  </tbody></table></div></div>
+
+<div class="grid g2 mb">
+  <div class="card"><div class="card-h"><h2>Income by head</h2></div>
+    {% for n, nat, a in S.income_heads %}<div class="stat-row"><span>{{ n }} {% if nat != 'revenue' %}<span class="badge">{{ 'pass-through' if nat in ('tip_in','gst_in') else 'owner' }}</span>{% endif %}</span><b>{{ a|inr }}</b></div>{% else %}<div class="empty">No income recorded.</div>{% endfor %}</div>
+  <div class="card"><div class="card-h"><h2>Expenses by head</h2></div>
+    {% for n, nat, a in S.expense_heads %}<div class="stat-row"><span>{{ n }} {% if nat != 'expense' %}<span class="badge">{{ 'pass-through' if nat in ('tip_out','gst_out','vendor_pay') else 'owner' }}</span>{% endif %}</span><b>{{ a|inr }}</b></div>{% else %}<div class="empty">No expenses recorded.</div>{% endfor %}</div>
+</div>
+
+<div class="card mb"><div class="card-h"><h2>{{ ui.icon('gift') }} Tips per employee</h2><a class="btn sm" href="{{ url_for('fin.tips', p=key, **({'from': d1.isoformat(), 'to': d2.isoformat()} if key == 'custom' else {})) }}">Manage & pay</a></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Payout</th><th class="num">Opening balance</th><th class="num">Earned</th><th class="num">Paid</th><th class="num">Balance due</th></tr></thead><tbody>
+  {% for r in S.tips %}<tr><td><b>{{ r.emp.name.split('(')[0] }}</b><br><small>{{ r.emp.role_label }}</small></td><td>{{ 'End of day' if r.emp.tip_mode == 'daily' else 'With salary' }}</td><td class="num">{{ r.opening|inr }}</td><td class="num">{{ r.earned|inr }}</td><td class="num">{{ r.paid|inr }}</td><td class="num"><b class="{{ 'warn' if r.closing > 0 }}">{{ r.closing|inr }}</b></td></tr>
+  {% else %}<tr><td colspan="6" class="empty">No tips in this period.</td></tr>{% endfor %}</tbody></table></div></div>
+
+{% if cash_by_branch %}<div class="card"><div class="card-h"><h2>{{ ui.icon('pin') }} By branch</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Branch</th><th class="num">Money in</th><th class="num">Business income</th><th class="num">Tips</th><th class="num">Cash in counter</th><th class="num">UPI</th><th class="num">Card</th></tr></thead><tbody>
+  {% for b, s in cash_by_branch %}<tr><td><b>{{ b.name }}</b></td><td class="num">{{ s.in_total|inr }}</td><td class="num">{{ s.revenue|inr }}</td><td class="num">{{ s.tips_in|inr }}</td><td class="num">{{ s.cash_total|inr }}</td><td class="num">{{ s.upi_total|inr }}</td><td class="num">{{ s.card_total|inr }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+
+{% include 'finance/_transfer_modal.html' %}
+{% endblock %}

@@ -1,0 +1,9 @@
+{
+  "name": "RK Hair Pro – Salon Manager",
+  "short_name": "RK Hair Pro",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#d4af37",
+  "icons": [{ "src": "/static/img/logo.png", "sizes": "450x360", "type": "image/png" }]
+}

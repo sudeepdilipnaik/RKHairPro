@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>WhatsApp outbox <span class="badge warn">demo mode</span></h1><p>Every WhatsApp message the system would send – booking confirmations, updates, cancellations, 1-hour reminders, payment thank-yous, tip payouts, salary alerts. Live sending plugs in later without changing anything else.</p></div>
+  <form method="post" action="{{ url_for('misc.run_reminders') }}"><button class="btn gold">{{ ui.icon('clock') }} Run reminder job now</button></form></div>
+<div class="row mb"><div class="pills"><a class="{{ 'active' if not kind }}" href="?">All</a>{% for k, v in kinds.items() if counts.get(k) %}<a class="{{ 'active' if kind == k }}" href="?kind={{ k }}">{{ v[0] }} · {{ counts[k] }}</a>{% endfor %}</div></div>
+<div class="grid g-main">
+  <div class="grid">{% for m in rows %}<div class="wa-chat"><div class="wa-meta"><b style="color:#e9edef">{{ m.to_name }}</b> · +91 {{ m.to_mobile }} · {{ kinds.get(m.kind, [m.kind])[0] }} · {{ m.created_at|dtfmt }} {% if m.branch %}· {{ m.branch.name }}{% endif %}</div>
+    <div class="wa-bubble">{{ m.body }}</div><div class="row" style="justify-content:space-between"><small style="color:#8696a0">✓✓ {{ 'simulated (not actually delivered)' if m.status == 'simulated' else m.status }}</small><a class="btn sm" target="_blank" rel="noopener" href="{{ wa_link(m.to_mobile, m.body) }}">Open in WhatsApp</a></div></div>
+  {% else %}<div class="card empty">No messages.</div>{% endfor %}</div>
+  <div class="grid" style="align-content:start">
+    <form method="post" action="{{ url_for('misc.send_custom') }}" class="card"><div class="card-h"><h3>Send a message</h3></div><div class="grid" style="gap:10px"><div class="field"><label>Name</label><input name="name"></div><div class="field"><label>Mobile</label><input name="mobile" required></div><div class="field"><label>Message</label><textarea name="body" required></textarea></div><button class="btn gold">{{ ui.icon('send') }} Queue message</button></div></form>
+    <div class="card"><div class="card-h"><h3>Automatic messages</h3></div><ul class="muted" style="padding-left:18px;margin:0;line-height:1.9"><li>Appointment confirmed / changed / cancelled</li><li>Reminder 1 hour before the appointment</li><li>Payment received – thank-you with bill details</li><li>Tips paid (full / partial) to employee</li><li>Salary & reimbursement paid</li><li>Leave / stock / role decisions</li><li>Low-stock alert to branch manager</li></ul>
+      {% if current_user.has_perm('settings') %}<a class="btn sm mt-s" href="{{ url_for('sett.index', tab='templates') }}">Edit message templates</a>{% endif %}</div>
+  </div>
+</div>
+{% endblock %}

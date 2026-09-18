@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Announcements</h1><p>Messages from the owner and management.</p></div></div>
+<div class="grid">{% for a in rows %}<div class="card"><div class="card-h"><h3>{% if a.pinned %}📌 {% endif %}{{ a.title }}</h3><small class="muted">{{ a.created_at|dtfmt }} · {{ a.created_by.name.split('(')[0] if a.created_by }}</small></div><p style="margin:0;white-space:pre-wrap">{{ a.body }}</p></div>{% else %}<div class="card empty">No announcements yet.</div>{% endfor %}</div>
+{% endblock %}

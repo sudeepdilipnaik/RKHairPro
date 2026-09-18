@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Payslip · {{ p.month }}</h1><p>{{ p.employee.name }} · {{ p.employee.role_label }} · {{ p.branch.name if p.branch }}</p></div><button class="btn no-print" onclick="window.print()">{{ ui.icon('printer') }} Print</button></div>
+<div class="card" style="max-width:640px">
+  <div class="row between"><img src="{{ url_for('static', filename='img/logo.png') }}" style="height:64px"><div class="right"><b>{{ 'PAID' if p.status == 'paid' else 'DRAFT' }}</b><br><small>{{ p.paid_on|dfmt if p.paid_on }}{% if p.mode %} · {{ MODE.get(p.mode, p.mode) }}{% endif %}</small></div></div><hr class="sep">
+  <div class="stat-row"><span>Base salary</span><b>{{ p.base_salary|inr }}</b></div>
+  <div class="stat-row"><span>Deductions ({{ p.deduction_days }} day(s): {{ p.absent_days|int }} absent, {{ p.half_days|int }} half, {{ p.late_marks }} late, {{ p.early_exits }} early, {{ p.unpaid_leave_days|int }} unpaid leave)</span><b class="bad">-{{ p.deduction_amt|inr }}</b></div>
+  <div class="stat-row"><span>Incentive ({{ '%g'|format(p.incentive_pct) }}% of {{ p.service_revenue|inr }})</span><b class="ok">{{ p.incentive_amt|inr }}</b></div>
+  <div class="stat-row"><span>Reimbursements</span><b>{{ p.reimb_amt|inr }}</b></div>
+  <div class="stat-row"><span><b>Net salary</b></span><b>{{ p.net_salary|inr }}</b></div>
+  <div class="stat-row"><span>Tips paid with salary</span><b>{{ p.tips_amt|inr }}</b></div>
+  <div class="stat-row"><span><b>Total credited</b></span><b class="gold" style="font-size:1.3rem">{{ p.total_payable|inr }}</b></div>
+</div>
+{% endblock %}

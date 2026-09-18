@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Marketing</h1><p>Win new clients, bring lapsed ones back and turn every visit into a review.</p></div><a class="btn gold" href="{{ url_for('mkt.campaigns') }}">{{ ui.icon('send') }} New campaign</a></div>
+{% include 'marketing/_tabs.html' %}
+<div class="kpi-grid mb">
+  {{ ui.kpi('New clients this month', new_clients, plain=True) }}{{ ui.kpi('Open leads', leads_open, 'enquiries to follow up', url_for('mkt.leads')) }}
+  {{ ui.kpi('Average rating', ('%.2f'|format(avg)) + ' ★', n_fb|string + ' reviews', url_for('mkt.feedback')) }}{{ ui.kpi('Lapsed clients', lapsed, 'win-back opportunity', url_for('mkt.campaigns', seg='lapsed')) }}
+  {{ ui.kpi('Active coupons', coupons, '', url_for('mkt.coupons')) }}
+</div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>🎂 Birthdays this month <span class="badge gold">{{ bdays|length }}</span></h2>{% if bdays %}<form method="post" action="{{ url_for('mkt.birthdays_send') }}"><button class="btn sm gold">{{ ui.icon('send') }} Send greetings + offer</button></form>{% endif %}</div>
+    {% for c in upcoming %}<a class="list-item" href="{{ url_for('clients.view', cid=c.id) }}"><div class="grow"><b>{{ c.name }}</b><br><small>{{ c.mobile }}</small></div><span class="badge gold">{{ c.dob|dfmt('%d %b') }}</span></a>{% else %}<div class="empty">No more birthdays this month.</div>{% endfor %}</div>
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('users') }} Lead funnel</h2><a class="btn sm" href="{{ url_for('mkt.leads') }}">Open tracker</a></div>
+    {{ ui.hbars([('New', funnel.new), ('Contacted', funnel.contacted), ('Booked', funnel.booked), ('Lost', funnel.lost)], false) }}</div>
+  <div class="card"><div class="card-h"><h2>Where clients come from</h2><a class="btn sm" href="{{ url_for('rep.view', key='booking_sources') }}">Report</a></div>{{ ui.hbars(src, false) }}</div>
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('alert') }} Low ratings to follow up</h2><a class="btn sm" href="{{ url_for('mkt.feedback', low=1) }}">All</a></div>
+    {% for f in low_fb %}<div class="list-item" style="align-items:flex-start"><div class="grow"><b>{{ f.client.name if f.client }}</b> · {{ ui.stars(f.rating) }}<br><small>{{ f.comment }} · {{ f.branch.name }}</small></div></div>{% else %}<div class="empty">No unhappy clients – great!</div>{% endfor %}</div>
+  <div class="card" style="grid-column:1/-1"><div class="card-h"><h2>Recent campaigns</h2></div>
+    {% for c in camps %}<div class="list-item"><div class="grow"><b>{{ c.name }}</b><br><small>{{ c.segment|replace('_',' ')|title }} · {{ c.sent_at|dtfmt if c.sent_at }}</small></div><span class="badge ok">{{ c.sent_count }} sent</span></div>{% else %}<div class="empty">No campaigns yet.</div>{% endfor %}</div>
+</div>
+{% endblock %}

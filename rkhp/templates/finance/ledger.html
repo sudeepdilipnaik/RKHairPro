@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Ledger / day book</h1><p>{{ label }}</p></div><div class="row no-print"><a class="btn gold" href="{{ url_for('fin.entry', kind='in') }}">{{ ui.icon('plus') }} Income</a><a class="btn" href="{{ url_for('fin.entry', kind='out') }}">{{ ui.icon('plus') }} Expense</a>
+  <a class="btn" href="{{ url_for('rep.csv_', key='daybook', p=key, **({'from': d1.isoformat(), 'to': d2.isoformat()} if key == 'custom' else {})) }}">{{ ui.icon('download') }} CSV</a></div></div>
+{% include 'finance/_tabs.html' %}
+<form method="get" class="filters">
+  <div class="pills">{% for k, l in PERIODS if k != 'custom' %}<button name="p" value="{{ k }}" class="{{ 'active' if key == k }}">{{ l }}</button>{% endfor %}</div>
+  <div class="field"><label>From</label><input type="date" name="from" value="{{ d1.isoformat() }}"></div><div class="field"><label>To</label><input type="date" name="to" value="{{ d2.isoformat() }}"></div>
+  <div class="field"><label>Type</label><select name="kind"><option value="">All</option><option value="in" {{ 'selected' if f.get('kind') == 'in' }}>Money in</option><option value="out" {{ 'selected' if f.get('kind') == 'out' }}>Money out</option><option value="transfer" {{ 'selected' if f.get('kind') == 'transfer' }}>Transfers</option></select></div>
+  <div class="field"><label>Head</label><select name="head"><option value="">All heads</option>{% for h in heads %}<option value="{{ h.id }}" {{ 'selected' if f.get('head') == h.id|string }}>{{ h.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Account</label><select name="acc"><option value="">All accounts</option>{% for a in accounts %}<option value="{{ a.id }}" {{ 'selected' if f.get('acc') == a.id|string }}>{{ a.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Search</label><input name="q" value="{{ f.get('q','') }}"></div><button class="btn gold" name="p" value="custom">{{ ui.icon('search') }} Apply</button>
+</form>
+<div class="kpi-grid mb">{{ ui.kpi('Money in', tin|inr) }}{{ ui.kpi('Money out', tout|inr) }}{{ ui.kpi('Net', (tin - tout)|inr) }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Branch</th><th>Head</th><th>Mode</th><th>Account</th><th>Party / notes</th><th class="num">In</th><th class="num">Out</th></tr></thead><tbody>
+{% for t in rows %}<tr><td class="nowrap">{{ t.date|dfmt('%d %b') }}<br><small>{{ t.created_at|tfmt }}</small></td><td>{{ t.branch.name if t.branch else 'Company' }}</td>
+<td>{% if t.category %}<b>{{ t.category.name }}</b>{% else %}<span class="badge info">Transfer</span>{% endif %}{% if t.petty %} <span class="badge">petty</span>{% endif %}{% if t.employee and t.category and t.category.nature in ('tip_in','tip_out') %}<br><small>{{ t.employee.name.split('(')[0] }}</small>{% endif %}</td>
+<td>{{ MODE.get(t.mode, '—') }}</td><td>{{ t.account.name }}{% if t.to_account %} → {{ t.to_account.name }}{% endif %}</td><td style="max-width:260px">{{ t.party or '' }}{% if t.notes %}<br><small>{{ t.notes }}</small>{% endif %}{% if t.invoice %}<br><a href="{{ url_for('billing.view', iid=t.invoice_id) }}"><small>{{ t.invoice.number }}</small></a>{% endif %}</td>
+<td class="num ok">{{ t.amount|inr if t.kind == 'in' else '' }}</td><td class="num bad">{{ t.amount|inr if t.kind == 'out' else '' }}</td></tr>
+{% else %}<tr><td colspan="8" class="empty">No entries.</td></tr>{% endfor %}</tbody></table></div>
+<p class="hint mt-s">Showing the latest {{ rows|length }} entries (max 400) – use the CSV export or the Day book report for everything.</p>
+{% endblock %}

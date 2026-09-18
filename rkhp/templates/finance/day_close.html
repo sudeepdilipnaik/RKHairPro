@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Day close</h1><p>{{ d|dfmt('%A, %d %B %Y') }} · <b class="gold">{{ br.name }}</b> – reconcile the cash counter and see the day at a glance.</p></div>
+  <div class="row no-print">{% if all_b|length > 1 %}<div class="pills">{% for b in all_b %}<a class="{{ 'active' if b.id == bid }}" href="{{ url_for('fin.day_close', date=d.isoformat(), b=b.id) }}">{{ b.name }}</a>{% endfor %}</div>{% endif %}
+  <form method="get" class="row"><input type="hidden" name="b" value="{{ bid }}"><input type="date" name="date" value="{{ d.isoformat() }}" max="{{ now().date().isoformat() }}" onchange="this.form.submit()" style="width:160px"></form><button class="btn" onclick="window.print()">{{ ui.icon('printer') }} Print</button></div></div>
+{% include 'finance/_tabs.html' %}
+<div class="kpi-grid mb">
+  {{ ui.kpi('Day sales', S.revenue|inr, 'services + products') }}{{ ui.kpi('Total received', S.in_total|inr, 'cash ' + (S.mode_in.get('cash',0))|inr + ' · UPI ' + (S.mode_in.get('upi',0))|inr + ' · card ' + (S.mode_in.get('card',0))|inr) }}
+  {{ ui.kpi('Expenses & payouts', S.out_total|inr) }}{{ ui.kpi('Tips today', S.tips_in|inr, S.tips_out|inr + ' paid out') }}
+</div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('wallet') }} Cash counter</h2>{% if dc %}<span class="badge {{ 'ok' if dc.difference|abs < 1 else 'warn' }}">Closed {{ dc.closed_at|tfmt }}</span>{% endif %}</div>
+    <div class="stat-row"><span>Opening cash</span><b>{{ S.cash_opening|inr }}</b></div>
+    <div class="stat-row"><span>+ Cash received today</span><b class="ok">{{ (S.mode_in.get('cash',0))|inr }}</b></div>
+    <div class="stat-row"><span>− Cash paid out today</span><b class="bad">{{ (S.mode_out.get('cash',0))|inr }}</b></div>
+    <div class="stat-row"><span><b>Cash that should be in the counter</b></span><b class="gold" style="font-size:1.2rem">{{ expected|inr }}</b></div>
+    <hr class="sep">
+    <form method="post"><div class="form-grid"><div class="field"><label>Cash counted physically ₹</label><input name="counted" id="counted" type="number" step="1" value="{{ dc.counted_cash|int if dc else '' }}" required></div>
+      <div class="field"><label>Difference</label><input id="diff" readonly value="{{ dc.difference if dc else '' }}"></div><div class="field full"><label>Note</label><input name="note" value="{{ dc.note if dc and dc.note else '' }}" placeholder="Reason for any difference"></div></div>
+      <button class="btn gold mt-s">{{ ui.icon('check') }} {{ 'Update day close' if dc else 'Close the day' }}</button></form>
+    {% if pending_tips %}<hr class="sep"><div class="warn" style="font-weight:700">⚠ Unpaid tips at day end</div>{% for r in pending_tips %}<div class="stat-row"><span>{{ r.emp.name.split('(')[0] }} <small>({{ 'end of day' if r.emp.tip_mode == 'daily' else 'with salary' }})</small></span><b>{{ r.closing|inr }}</b></div>{% endfor %}
+      <a class="btn sm mt-s" href="{{ url_for('fin.tips') }}">Go to tips</a>{% endif %}
+  </div>
+  <div class="card"><div class="card-h"><h2>Where the money is</h2></div>
+    {% for r in S.accounts if r.acc.active %}<div class="stat-row"><span>{{ r.acc.name }}<br><small>in {{ r.inflow|inr }} · out {{ r.outflow|inr }}</small></span><b>{{ r.closing|inr }}</b></div>{% endfor %}
+    <hr class="sep"><div class="card-h"><h3>Tips per employee (today)</h3></div>
+    {% for r in S.tips if r.earned or r.paid %}<div class="stat-row"><span>{{ r.emp.name.split('(')[0] }}</span><b>earned {{ r.earned|inr }} · paid {{ r.paid|inr }} · due {{ r.closing|inr }}</b></div>{% else %}<div class="muted">No tips today.</div>{% endfor %}
+  </div>
+</div>
+<div class="card mt"><div class="card-h"><h2>Recent day closes</h2></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Branch</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Difference</th><th>Closed by</th><th>Note</th></tr></thead><tbody>
+  {% for h in hist %}<tr><td>{{ h.date|dfmt }}</td><td>{{ h.branch.name }}</td><td class="num">{{ h.expected_cash|inr }}</td><td class="num">{{ h.counted_cash|inr }}</td><td class="num {{ 'ok' if h.difference|abs < 1 else 'bad' }}">{{ h.difference|inr }}</td><td>{{ h.closed_by.name if h.closed_by else '' }}</td><td>{{ h.note or '' }}</td></tr>
+  {% else %}<tr><td colspan="7" class="empty">No day closes yet.</td></tr>{% endfor %}</tbody></table></div></div>
+<script>const c=document.getElementById('counted'),f=document.getElementById('diff'); c.oninput=()=>{f.value=c.value===''?'':(c.value-{{ expected }}).toFixed(0)};</script>
+{% endblock %}

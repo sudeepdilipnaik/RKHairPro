@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Income & expense heads</h1><p>Every rupee is filed under a clear head. Add your own – system heads are used automatically by billing, tips, payroll and inventory.</p></div>
+  {% if current_user.is_super %}<button class="btn gold" data-modal="headModal" data-fill-id="" data-fill-name="">{{ ui.icon('plus') }} New head</button>{% endif %}</div>
+{% include 'finance/_tabs.html' %}
+<div class="grid g2">
+{% for kind, title in [('income','Income heads'),('expense','Expense heads')] %}
+<div class="card"><div class="card-h"><h2>{{ title }}</h2></div>
+  {% for r in rows if r.kind == kind %}<div class="list-item"><div class="grow"><b>{{ r.name }}</b> {% if r.system %}<span class="badge">system</span>{% endif %}{% if not r.active %}<span class="badge bad">off</span>{% endif %}<br><small>{{ r.group or '—' }} · {{ natures|selectattr(0,'equalto',r.nature)|map(attribute=1)|first }} · {{ usage.get(r.id, 0) }} entries</small></div>
+    {% if current_user.is_super %}<button class="btn sm" data-modal="headModal" data-fill-id="{{ r.id }}" data-fill-name="{{ r.name }}" data-fill-kind="{{ r.kind }}" data-fill-nature="{{ r.nature }}" data-fill-group="{{ r.group or '' }}" data-fill-active="{{ 1 if r.active else 0 }}">Edit</button>{% endif %}</div>{% endfor %}
+</div>{% endfor %}</div>
+<dialog class="modal" id="headModal"><form method="post"><input type="hidden" name="id"><div class="m-h"><h2>Head</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field span2"><label>Name</label><input name="name" required placeholder="e.g. Instagram collaboration income"></div>
+    <div class="field"><label>Type</label><select name="kind"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+    <div class="field"><label>Treated as</label><select name="nature">{% for k, l in natures %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Group</label><input name="group" placeholder="e.g. Premises, People"></div>
+    <div class="field"><label>Status</label><select name="active"><option value="1">Active</option><option value="0">Off</option></select></div></div>
+    <p class="hint">"Business income / expense" heads flow into profit & loss. Pass-through heads (tips, GST) are liabilities, not income. System heads can only be renamed by group or switched off.</p></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Campaigns & broadcasts</h1><p>Send an offer or announcement to a segment of clients on WhatsApp. Use <code>{name}</code> and <code>{book_link}</code> in the message.</p></div></div>
+{% include 'marketing/_tabs.html' %}
+<div class="grid g-main">
+  <div class="card"><div class="card-h"><h2>History</h2></div>
+    {% for c in rows %}<div class="list-item"><div class="grow"><b>{{ c.name }}</b><br><small>{{ c.segment|replace('_',' ')|title }} · {{ c.sent_at|dtfmt if c.sent_at }}</small><br><small class="muted">{{ c.message[:110] }}</small></div><span class="badge ok">{{ c.sent_count }} sent</span></div>{% else %}<div class="empty">No campaigns yet.</div>{% endfor %}</div>
+  <form method="post" class="card" style="align-self:start"><div class="card-h"><h2>New campaign</h2></div><div class="grid" style="gap:12px">
+    <div class="field"><label>Campaign name</label><input name="name" required placeholder="Diwali offer"></div>
+    <div class="field"><label>Audience</label><select name="segment" id="seg">{% for k, l in segments %}<option value="{{ k }}" {{ 'selected' if pre.get('seg') == k }}>{{ l }} — {{ counts[k] }}</option>{% endfor %}</select></div>
+    {% if not current_user.branch_id %}<div class="field"><label>Branch tag</label><select name="branch_id"><option value="">All branches</option>{% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select></div>{% endif %}
+    <div class="field"><label>WhatsApp message</label><textarea name="message" rows="5" required>Hi {name}, enjoy 10% off your next visit to RK Hair Pro with code WELCOME10. Book your slot: {book_link}</textarea></div>
+    <div class="row"><button class="btn" name="action" value="preview">Preview audience</button><button class="btn gold" name="action" value="send" data-confirm="Send this message to the selected audience now?">{{ ui.icon('send') }} Send now</button></div>
+    <p class="hint">Demo mode: messages appear in the WhatsApp Outbox instead of being delivered.</p></div></form>
+</div>
+{% endblock %}

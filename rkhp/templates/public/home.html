@@ -1,0 +1,175 @@
+{% extends 'public/base.html' %}
+{% block content %}
+{% set wa = ui.wa_url()|trim %}
+{% set staff = current_user.is_authenticated %}
+
+<!-- ============ HERO ============ -->
+<section class="hero2">
+  <div class="hero-glow"></div><div class="hero-lines"></div>
+  <div class="pub-wrap hero-in">
+    <div class="hero-brand {{ 'has-anim' if hero_src }}" id="heroBrand">
+      <img class="hero-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="RK Hair Pro – Unisex Salon">
+      {% if hero_src %}<div class="hero-anim" aria-hidden="true">
+        <video id="heroAnim" src="{{ hero_src }}" autoplay muted playsinline preload="auto" {{ 'loop' if hero_loop }} disablepictureinpicture></video>
+      </div>{% endif %}
+    </div>
+    {% if hero_src and hero_sound %}<button type="button" class="anim-sound" id="animSound" hidden>{{ ui.icon('volume') }} <span>Play with sound</span></button>{% endif %}
+    <p class="eyebrow">{{ setting('site_hero_eyebrow') }}</p>
+    <h1>{{ setting('site_hero_title') }} <span class="gold-text">{{ setting('site_hero_title_gold') }}</span></h1>
+    <p class="lead">{{ setting('site_hero_lead') }}</p>
+    <div class="cta-row">
+      <a class="btn gold lg" href="{{ url_for('public.book') }}">{{ ui.icon('calendar') }} Book an appointment</a>
+      <button type="button" class="btn lg js-call" data-modal="callModal">{{ ui.icon('phone') }} Call us</button>
+      {% if wa %}<a class="btn lg wa-btn" href="{{ wa }}" target="_blank" rel="noopener">{{ ui.icon('chat') }} WhatsApp</a>{% endif %}
+    </div>
+    <div class="hero-meta">
+      {% if avg %}<span class="pill">★ <b>{{ avg }}</b> from {{ n_rev }} client reviews</span>{% endif %}
+      <span class="pill">{{ branches|length }} branches in South Mumbai</span><span class="pill">Instant WhatsApp confirmation</span>
+    </div>
+    {{ ui.socials('center') }}
+  </div>
+  <a class="scroll-cue" href="#about" aria-label="Scroll">{{ ui.icon('right') }}</a>
+</section>
+
+<!-- ============ MEET RK ============ -->
+{% if rk and show('meet') %}
+<section class="pub-sec" id="about">
+  <div class="pub-wrap meet reveal">
+    <div class="meet-photo"><div class="frame-gold"><img src="{{ meet_photo }}" alt="Rakesh Kumar (RK), founder and master stylist"></div></div>
+    <div class="meet-text">
+      <p class="eyebrow">{{ setting('site_meet_eyebrow') }}</p>
+      <h2>Rakesh Kumar <span class="gold-text">(RK)</span></h2>
+      <p class="muted-lg">{{ setting('site_meet_text') }}</p>
+      <ul class="tick">{% for p in meet_points %}<li>{{ ui.icon('check') }} {{ p }}</li>{% endfor %}</ul>
+      <div class="stats">
+        <div><b>{{ branches|length }}</b><span>Branches</span></div><div><b>{{ team|length }}</b><span>Stylists</span></div>
+        <div><b>{{ avg or '—' }}★</b><span>Client rating</span></div>
+      </div>
+      <a class="btn gold lg" href="{{ url_for('public.book') }}?employee={{ rk.id }}">Book with RK</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ VIDEO SLIDER ============ -->
+{% if videos and show('videos') %}
+<section class="pub-sec dark-band" id="transformations">
+  <div class="pub-wrap">
+    <div class="sec-title reveal"><p class="eyebrow">{{ setting('site_videos_eyebrow') }}</p><h2>{{ setting('site_videos_title') }} <span class="gold-text">{{ setting('site_videos_gold') }}</span></h2><p class="muted-lg">{{ setting('site_videos_sub') }}</p></div>
+    <div class="slider vslider reveal" data-slider>
+      <button class="arrow prev" aria-label="Previous">{{ ui.icon('left') }}</button>
+      <div class="track" tabindex="0">
+        {% for t in videos %}
+        {% set poster = url_for('public.media', name=t.poster_file) if t.poster_file else '' %}
+        <article class="vcard {{ 'sample' if not (t.video_file or t.video_url) }}" {% if t.yt_id %}data-yt="{{ t.yt_id }}"{% elif t.video_url and not t.direct_url %}data-link="{{ t.video_url }}"{% endif %}>
+          {% if t.video_file %}<video src="{{ url_for('public.media', name=t.video_file) }}#t=0.1" {% if poster %}poster="{{ poster }}"{% endif %} preload="metadata" playsinline loop muted></video>
+          {% elif t.direct_url %}<video src="{{ t.direct_url }}" {% if poster %}poster="{{ poster }}"{% endif %} preload="metadata" playsinline loop muted></video>
+          {% elif t.yt_id %}<div class="vthumb" style="background-image:url('https://img.youtube.com/vi/{{ t.yt_id }}/hqdefault.jpg')"></div>
+          {% else %}<div class="vthumb v{{ loop.index0 % 5 }}" {% if poster %}style="background-image:url('{{ poster }}')"{% endif %}><span class="mono">RK</span></div>{% endif %}
+          <div class="vshade"></div>
+          <span class="vplay">{{ ui.icon('play') }}</span>
+          {% if t.video_file or t.direct_url %}<button type="button" class="vmute" aria-label="Sound on/off"><span class="on">{{ ui.icon('volume') }}</span><span class="off">{{ ui.icon('mute') }}</span></button>{% endif %}
+          <div class="vcap">{% if t.tag %}<span class="tag">{{ t.tag }}</span>{% endif %}<b>{{ t.title }}</b>{% if t.client_name %}<small>{{ t.client_name }}{% if t.quote %} · “{{ t.quote }}”{% endif %}</small>{% endif %}</div>
+          {% if t.is_sample and staff %}<span class="sample-chip">Sample</span>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      <button class="arrow next" aria-label="Next">{{ ui.icon('right') }}</button>
+      <div class="dots"></div>
+    </div>
+    <div class="center mt"><a class="btn" href="{{ setting('instagram') }}" target="_blank" rel="noopener">{{ ui.icon('instagram') }} More on Instagram</a></div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ SERVICES ============ -->
+{% if cats and show('services') %}
+<section class="pub-sec" id="services">
+  <div class="pub-wrap">
+    <div class="sec-title reveal"><p class="eyebrow">{{ setting('site_services_eyebrow') }}</p><h2>{{ setting('site_services_title') }} <span class="gold-text">{{ setting('site_services_gold') }}</span></h2></div>
+    <div class="cat-tabs reveal" data-tabs>{% for c in cats %}<button type="button" class="{{ 'active' if loop.first }}" data-tab="cat{{ c.id }}">{{ c.name }}</button>{% endfor %}</div>
+    {% for c in cats %}
+    <div class="tabpanel {{ 'active' if loop.first }}" id="cat{{ c.id }}">
+      <div class="svc-grid">
+        {% for s in svcs[c.id] %}<a class="svc-card" href="{{ url_for('public.book') }}?service={{ s.id }}">
+          <div class="svc-top"><span class="g-tag">{{ s.gender }}</span><span class="dur">{{ ui.icon('clock') }} {{ s.duration }} min</span></div>
+          <h3>{{ s.name }}</h3><p>{{ s.description or '' }}</p>
+          <div class="svc-foot"><b class="price">{{ s.price|inr }}</b><span class="go">Book {{ ui.icon('right') }}</span></div></a>{% endfor %}
+      </div>
+    </div>{% endfor %}
+    <p class="center muted mt-s" style="font-size:.85rem">Prices are indicative and may vary with hair length and products used.</p>
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ TESTIMONIALS ============ -->
+{% if quotes and show('reviews') %}
+<section class="pub-sec ivory-band" id="reviews">
+  <div class="pub-wrap">
+    <div class="sec-title reveal"><p class="eyebrow dark">{{ setting('site_reviews_eyebrow') }}</p><h2 class="ink">{{ setting('site_reviews_title') }} <span class="gold-ink">{{ setting('site_reviews_gold') }}</span></h2>
+      {% if avg %}<p class="ink-soft">★ {{ avg }} average from {{ n_rev }} verified client reviews</p>{% endif %}</div>
+    <div class="slider qslider reveal" data-slider data-auto="6000">
+      <button class="arrow prev" aria-label="Previous">{{ ui.icon('left') }}</button>
+      <div class="track" tabindex="0">
+        {% for t in quotes %}<figure class="qcard">
+          <span class="qmark">“</span>
+          <div class="qstars">{{ '★' * t.rating }}{{ '☆' * (5 - t.rating) }}</div>
+          <blockquote>{{ t.quote }}</blockquote>
+          <figcaption><span class="qav">{{ t.client_name[0] if t.client_name else '★' }}</span><span><b>{{ t.client_name }}</b><small>{{ t.title }}</small></span></figcaption>
+          {% if t.is_sample and staff %}<span class="sample-chip dark">Sample</span>{% endif %}
+        </figure>{% endfor %}
+      </div>
+      <button class="arrow next" aria-label="Next">{{ ui.icon('right') }}</button>
+      <div class="dots dark"></div>
+    </div>
+    {% if setting('google_review_link') %}<div class="center mt"><a class="btn ink-btn" href="{{ setting('google_review_link') }}" target="_blank" rel="noopener">{{ ui.icon('star') }} Leave us a Google review</a></div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ TEAM ============ -->
+{% if team and show('team') %}
+<section class="pub-sec" id="team">
+  <div class="pub-wrap">
+    <div class="sec-title reveal"><p class="eyebrow">{{ setting('site_team_eyebrow') }}</p><h2>{{ setting('site_team_title') }} <span class="gold-text">{{ setting('site_team_gold') }}</span></h2></div>
+    <div class="team reveal">
+      {% for e in team %}<a class="card team-card" href="{{ url_for('public.book') }}?employee={{ e.id }}">{{ ui.avatar(e) }}<h3>{{ e.name.split('(')[0] }}</h3><div class="role">{{ e.designation }}</div><p>{{ e.bio }}</p><span class="go">Book {{ ui.icon('right') }}</span></a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ BRANCHES ============ -->
+{% if show('branches') %}
+<section class="pub-sec dark-band" id="branches">
+  <div class="pub-wrap">
+    <div class="sec-title reveal"><p class="eyebrow">{{ setting('site_branches_eyebrow') }}</p><h2>{{ setting('site_branches_title') }} <span class="gold-text">{{ setting('site_branches_gold') }}</span></h2></div>
+    <div class="branches reveal">
+      {% for b in branches %}<div class="card branch-card">
+        <div class="bh"><span class="bi">{{ ui.icon('pin') }}</span><div><h3>{{ b.name }}</h3><small class="muted">{{ b.open_time|tfmt }} – {{ b.close_time|tfmt }} · by appointment</small></div></div>
+        <p class="muted">{{ b.address }}</p>
+        <div class="bactions">
+          {% if b.phone|tel10 %}<a class="btn" href="tel:+91{{ b.phone|tel10 }}">{{ ui.icon('phone') }} {{ b.phone|phone }}</a>{% endif %}
+          <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ ('RK Hair Pro ' ~ b.address)|urlencode }}">{{ ui.icon('pin') }} Directions</a>
+          <a class="btn gold" href="{{ url_for('public.book') }}?branch={{ b.id }}">Book here</a></div></div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ============ FOLLOW / FINAL CTA ============ -->
+{% if show('cta') %}
+<section class="pub-sec cta-final">
+  <div class="pub-wrap center reveal">
+    <h2>{{ setting('site_cta_title') }} <span class="gold-text">{{ setting('site_cta_gold') }}</span></h2>
+    <p class="muted-lg">{{ setting('site_cta_sub') }}</p>
+    <div class="cta-row"><a class="btn gold lg" href="{{ url_for('public.book') }}">{{ ui.icon('calendar') }} Book an appointment</a><button type="button" class="btn lg js-call" data-modal="callModal">{{ ui.icon('phone') }} Call us</button></div>
+    <div class="follow">
+      {% if setting('instagram') %}<a class="follow-btn ig" href="{{ setting('instagram') }}" target="_blank" rel="noopener">{{ ui.icon('instagram') }}<span>Follow on Instagram<small>{{ '@' ~ setting('instagram').rstrip('/').split('/')[-1] }}</small></span></a>{% endif %}
+      {% if setting('facebook') %}<a class="follow-btn fb" href="{{ setting('facebook') }}" target="_blank" rel="noopener">{{ ui.icon('facebook') }}<span>Like on Facebook<small>{{ setting('facebook').rstrip('/').split('/')[-1] }}</small></span></a>{% endif %}
+      {% if wa %}<a class="follow-btn wa" href="{{ wa }}" target="_blank" rel="noopener">{{ ui.icon('chat') }}<span>Chat on WhatsApp<small>{{ setting('whatsapp_number')|phone }}</small></span></a>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

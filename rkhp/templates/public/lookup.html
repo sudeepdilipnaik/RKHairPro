@@ -1,0 +1,16 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="pub-wrap" style="max-width:640px;padding-top:30px">
+  <div class="page-h"><div><h1 class="gold-text">Check my booking</h1><p>Enter your booking ID and mobile number.</p></div></div>
+  <form method="post" class="card"><div class="form-grid">
+    <div class="field"><label>Booking ID</label><input name="code" placeholder="RKXXXXXX" required></div>
+    <div class="field"><label>Mobile number</label><input name="mobile" type="tel" required></div>
+  </div><button class="btn gold mt-s">Find booking</button></form>
+  {% if a %}<div class="card mt"><div class="card-h"><h2>{{ a.code }}</h2>{{ ui.status(a.status) }}</div>
+    <div class="stat-row"><span>Branch</span><b>{{ a.branch.name }}</b></div>
+    <div class="stat-row"><span>When</span><b>{{ a.start_dt|dfmt('%a, %d %b %Y') }} · {{ a.start_dt|tfmt }}</b></div>
+    <div class="stat-row"><span>Stylist</span><b>{{ a.employee.name if a.employee else '—' }}</b></div>
+    <div class="stat-row"><span>Services</span><b>{{ a.service_names }}</b></div>
+    <p class="hint mt-s">To change or cancel, please call {{ a.branch.phone }}.</p></div>{% endif %}
+</div>
+{% endblock %}

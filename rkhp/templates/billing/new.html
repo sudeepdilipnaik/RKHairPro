@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>New bill</h1><p>{{ branch.name }} · {{ today|dfmt }} · record services, tips and how the client paid – cash, UPI or card.</p></div>
+  <a class="btn" href="{{ url_for('billing.list_') }}">All invoices</a></div>
+<form method="post" id="posform" autocomplete="off">
+<input type="hidden" name="appointment_id" value="{{ prefill.appt_id if prefill else '' }}">
+{% if not current_user.branch_id %}<input type="hidden" name="branch_id" value="{{ bid }}">{% endif %}
+<div class="book-grid" style="padding-top:0;grid-template-columns:minmax(0,1fr) 380px">
+  <div class="grid">
+    <div class="card"><div class="sec-h"><span class="n">1</span><h2>Client</h2></div>
+      <div class="form-grid">
+        <div class="field"><label>Mobile (optional for walk-in guests)</label><input name="mobile" type="tel" maxlength="14" value="{{ prefill.mobile if prefill else '' }}" placeholder="10-digit number"><span class="hint" id="client-hint"></span></div>
+        <div class="field"><label>Name</label><input name="name" value="{{ prefill.name if prefill else '' }}" placeholder="Client name"></div>
+      </div>
+      <p class="hint mt-s">With a mobile number, the client automatically receives a WhatsApp thank-you with the bill details and a feedback link.</p></div>
+
+    <div class="card"><div class="sec-h"><span class="n">2</span><h2>Services & products</h2></div>
+      <div id="items"></div>
+      <div class="row mt-s"><button type="button" class="btn sm" id="addSvc">{{ ui.icon('plus') }} Add service</button><button type="button" class="btn sm" id="addProd">{{ ui.icon('plus') }} Add product</button></div>
+    </div>
+
+    <div class="card"><div class="sec-h"><span class="n">3</span><h2>Discount</h2></div>
+      <div class="form-grid">
+        <div class="field"><label>Coupon code</label><div class="row" style="flex-wrap:nowrap"><input name="coupon" id="coupon" placeholder="e.g. WELCOME10" style="text-transform:uppercase"><button type="button" class="btn" id="applyCoupon">Apply</button></div><span class="hint" id="coupon-msg">Active: {% for c in coupons %}<b>{{ c.code }}</b>{{ ', ' if not loop.last }}{% endfor %}</span></div>
+        <div class="field"><label>Extra discount (₹)</label><input name="discount_amt" id="disc_amt" type="number" min="0" step="1" value="0"></div>
+        <div class="field"><label>or Discount (%)</label><input name="discount_pct" id="disc_pct" type="number" min="0" max="100" step="1" value="0"></div>
+      </div></div>
+
+    <div class="card"><div class="sec-h"><span class="n">4</span><h2>Tips <small class="muted">(paid 100% to the employee)</small></h2></div>
+      <div id="tips"></div><button type="button" class="btn sm mt-s" id="addTip">{{ ui.icon('plus') }} Add tip</button>
+      <p class="hint mt-s">Clients often pay the tip inside the same UPI transfer – add the tip here and include it in the payment below; it is tracked per employee and separated from business income.</p></div>
+  </div>
+
+  <aside class="grid sticky" style="align-content:start">
+    <div class="total-box">
+      <div class="stat-row"><span>Services & products</span><b id="t_sub">₹0</b></div>
+      <div class="stat-row"><span>Discount</span><b id="t_disc">₹0</b></div>
+      {% if gst %}<div class="stat-row"><span>GST ({{ '%g'|format(gst_rate) }}%)</span><b id="t_gst">₹0</b></div>{% endif %}
+      <div class="stat-row"><span>Tips</span><b id="t_tip">₹0</b></div>
+      <div class="stat-row"><span><b>Total to collect</b></span><b class="grand" id="t_grand">₹0</b></div>
+    </div>
+    <div class="card"><div class="sec-h"><span class="n">5</span><h2>Payment received</h2></div>
+      <div id="pays"></div><div class="row mt-s"><button type="button" class="btn sm" id="addPay">{{ ui.icon('plus') }} Split payment</button><button type="button" class="btn sm" id="fillPay">Fill balance</button></div>
+      <div class="stat-row mt-s"><span>Received</span><b id="t_paid">₹0</b></div>
+      <div class="stat-row"><span id="t_bal_l">Balance</span><b id="t_bal">₹0</b></div>
+      <div class="field mt-s"><label>Notes</label><input name="notes" placeholder="Optional"></div>
+      <button class="btn gold block lg mt-s" id="saveBtn">{{ ui.icon('check') }} Save bill</button>
+      <p class="hint mt-s" id="save-hint"></p>
+    </div>
+  </aside>
+</div></form>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+<script>
+const SVCS={{ svcs|tojson }}, PRODS={{ prods|tojson }}, EMPS={{ emps_j|tojson }}, ACC={{ acc_j|tojson }};
+const GST={{ gst|tojson }}, GST_RATE={{ gst_rate }}, PRE={{ (prefill or {})|tojson }};
+const $=s=>document.querySelector(s), form=$('#posform');
+const empOpts=(sel)=>'<option value="">— who did it —</option>'+EMPS.map(e=>`<option value="${e[0]}" ${String(e[0])===String(sel)?'selected':''}>${e[1].split('(')[0]}</option>`).join('');
+let couponDisc=0, couponOk=false;
+
+function addItem(kind, refId, price, emp){
+  const wrap=document.createElement('div'); wrap.className='pos-row';
+  const list = kind==='service' ? SVCS : PRODS;
+  const cats={}; list.forEach(s=>{(cats[s.cat||'Products']=cats[s.cat||'Products']||[]).push(s)});
+  let opts='<option value="">Select '+(kind==='service'?'service':'product')+'…</option>';
+  Object.keys(cats).forEach(c=>{opts+=`<optgroup label="${c}">`+cats[c].map(s=>`<option value="${s.id}" data-price="${s.price}" ${String(s.id)===String(refId)?'selected':''}>${s.name}${kind==='product'?' (stock '+s.stock+')':''}</option>`).join('')+'</optgroup>'});
+  wrap.innerHTML=`<input type="hidden" name="item_kind" value="${kind}">
+    <div class="field"><label>${kind==='service'?'Service':'Product'}</label><select name="item_ref">${opts}</select></div>
+    <div class="field"><label>Employee</label><select name="item_emp">${empOpts(emp)}</select></div>
+    <div class="field"><label>Qty</label><input name="item_qty" type="number" min="1" step="1" value="1"></div>
+    <div class="field"><label>Price ₹</label><input name="item_price" type="number" min="0" step="1" value="${price||0}"></div>
+    <button type="button" class="icon-btn" title="Remove">✕</button>`;
+  wrap.querySelector('[name=item_ref]').addEventListener('change',e=>{const o=e.target.selectedOptions[0]; wrap.querySelector('[name=item_price]').value=o&&o.dataset.price?o.dataset.price:0; calc();});
+  wrap.querySelector('button').onclick=()=>{wrap.remove();calc()};
+  wrap.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
+  $('#items').appendChild(wrap); calc();
+}
+function addTip(emp,amt){
+  const w=document.createElement('div'); w.className='pay-row'; w.style.gridTemplateColumns='2fr 1fr auto';
+  w.innerHTML=`<div class="field"><label>Employee</label><select name="tip_emp">${empOpts(emp)}</select></div><div class="field"><label>Tip ₹</label><input name="tip_amt" type="number" min="0" step="10" value="${amt||''}" placeholder="0"></div><button type="button" class="icon-btn">✕</button>`;
+  w.querySelector('button').onclick=()=>{w.remove();calc()}; w.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc)); $('#tips').appendChild(w); calc();
+}
+function accOpts(mode){
+  const t={cash:'cash',upi:'upi',card:'card',bank:'bank'}[mode];
+  const l=ACC.filter(a=>a[2]===t); return l.map(a=>`<option value="${a[0]}">${a[1]}</option>`).join('')||'<option value="">— default —</option>';
+}
+function addPay(mode,amt){
+  const w=document.createElement('div'); w.className='pay-row'; w.style.gridTemplateColumns='.9fr 1.6fr .9fr auto';
+  w.innerHTML=`<div class="field"><label>Mode</label><select name="pay_mode"><option value="upi">UPI</option><option value="cash">Cash</option><option value="card">Card</option><option value="bank">Bank</option></select></div>
+   <div class="field"><label>Into account</label><select name="pay_acct"></select></div><div class="field"><label>Amount ₹</label><input name="pay_amt" type="number" min="0" step="1" value="${amt||''}"></div><button type="button" class="icon-btn">✕</button>`;
+  const m=w.querySelector('[name=pay_mode]'), a=w.querySelector('[name=pay_acct]'); m.value=mode||'upi'; a.innerHTML=accOpts(m.value);
+  m.onchange=()=>{a.innerHTML=accOpts(m.value)}; w.querySelector('button').onclick=()=>{w.remove();calc()}; w.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
+  $('#pays').appendChild(w); calc();
+}
+function calc(){
+  let sub=0; document.querySelectorAll('#items .pos-row').forEach(r=>{const q=+r.querySelector('[name=item_qty]').value||0, p=+r.querySelector('[name=item_price]').value||0; sub+=q*p;});
+  let disc=Math.max(couponDisc, 0)+Math.max(+$('#disc_amt').value||0, sub*(+$('#disc_pct').value||0)/100); disc=Math.min(disc,sub);
+  const net=sub-disc, gst=GST?Math.round(net*GST_RATE)/100:0;
+  let tip=0; document.querySelectorAll('[name=tip_amt]').forEach(i=>tip+=+i.value||0);
+  const grand=Math.round((net+gst+tip)*100)/100;
+  let paid=0; document.querySelectorAll('[name=pay_amt]').forEach(i=>paid+=+i.value||0);
+  $('#t_sub').textContent=inr(sub); $('#t_disc').textContent='-'+inr(disc); if(GST)$('#t_gst').textContent=inr(gst); $('#t_tip').textContent=inr(tip); $('#t_grand').textContent=inr(grand); $('#t_paid').textContent=inr(paid);
+  const bal=Math.round((grand-paid)*100)/100, b=$('#t_bal'), l=$('#t_bal_l'), h=$('#save-hint');
+  if(bal>0.5){l.textContent='Balance due'; b.textContent=inr(bal); b.className='warn'; h.textContent='The bill will be saved as part-paid; collect the balance later from the invoice.';}
+  else if(bal<-0.5){l.textContent='Excess received'; b.textContent=inr(-bal); b.className='bad'; h.textContent='Received is more than the bill – add the extra as a tip.';}
+  else {l.textContent='Balance'; b.textContent='₹0'; b.className='ok'; h.textContent=grand>0?'Fully paid ✔':'';}
+  window._grand=grand; window._paid=paid;
+}
+$('#addSvc').onclick=()=>addItem('service'); $('#addProd').onclick=()=>addItem('product'); $('#addTip').onclick=()=>addTip(); $('#addPay').onclick=()=>addPay();
+$('#fillPay').onclick=()=>{const rows=document.querySelectorAll('[name=pay_amt]'); if(!rows.length){addPay('upi');} const last=[...document.querySelectorAll('[name=pay_amt]')].pop(); const others=[...document.querySelectorAll('[name=pay_amt]')].slice(0,-1).reduce((s,i)=>s+(+i.value||0),0); last.value=Math.max(0,Math.round((window._grand-others)*100)/100); calc();};
+['disc_amt','disc_pct'].forEach(i=>$('#'+i).addEventListener('input',calc));
+$('#applyCoupon').onclick=()=>{
+  const code=$('#coupon').value.trim(); if(!code){couponDisc=0;$('#coupon-msg').textContent='';calc();return}
+  let sub=0; document.querySelectorAll('#items .pos-row').forEach(r=>{sub+=(+r.querySelector('[name=item_qty]').value||0)*(+r.querySelector('[name=item_price]').value||0)});
+  fetch('/billing/coupon?code='+encodeURIComponent(code)+'&subtotal='+sub).then(r=>r.json()).then(d=>{ couponDisc=d.ok?d.discount:0; $('#coupon-msg').innerHTML=d.ok?('<span class="ok">✔ '+inr(d.discount)+' off – '+d.label+'</span>'):('<span class="bad">'+d.message+'</span>'); calc();});
+};
+form.addEventListener('submit',e=>{ if(!document.querySelector('#items .pos-row')){e.preventDefault(); alert('Add at least one service or product.'); return;} if(window._paid-window._grand>0.5){e.preventDefault(); alert('Received amount is more than the bill. Add the extra as a tip.');} });
+// mobile lookup
+const mob=form.querySelector('[name=mobile]');
+mob.addEventListener('input',rkDebounce(()=>{const v=mob.value.replace(/\D/g,'').slice(-10); if(v.length===10) fetch('/api/client?mobile='+v).then(r=>r.json()).then(c=>{const h=$('#client-hint'); if(c.found){form.querySelector('[name=name]').value=c.name; h.innerHTML='Existing client · '+c.points+' loyalty points';} else h.textContent='New client';});},350));
+// boot
+if(PRE.lines&&PRE.lines.length){PRE.lines.forEach(l=>addItem('service',l.id,l.price,PRE.emp));} else addItem('service');
+addPay('upi');
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h">
+  <div><h1>Appointments</h1><p>{{ d|dfmt('%A, %d %B %Y') }} · <b class="gold">{{ br.name }}</b> · {{ br.open_time|tfmt }} – {{ br.close_time|tfmt }}</p></div>
+  <div class="row no-print">
+    <a class="btn gold" href="{{ url_for('appt.new', date=d.isoformat(), branch=br.id) }}">{{ ui.icon('plus') }} New appointment</a>
+    <a class="btn" href="{{ url_for('appt.list_') }}">{{ ui.icon('list') }} List view</a>
+    <button class="btn" data-modal="blockModal">{{ ui.icon('lock') }} Block time</button>
+    {% if current_user.is_manager %}<a class="btn" href="{{ url_for('appt.services') }}">{{ ui.icon('scissors') }} Services & prices</a>{% endif %}
+  </div>
+</div>
+
+<div class="row between mb no-print">
+  <div class="row">
+    <a class="btn sm" href="{{ url_for('appt.board', date=prev.isoformat(), b=br.id) }}">‹ Prev</a>
+    <form method="get" class="row" style="gap:6px"><input type="hidden" name="b" value="{{ br.id }}"><input type="date" name="date" value="{{ d.isoformat() }}" onchange="this.form.submit()" style="width:160px"></form>
+    <a class="btn sm {{ 'gold' if d == today }}" href="{{ url_for('appt.board', b=br.id) }}">Today</a>
+    <a class="btn sm" href="{{ url_for('appt.board', date=nxt.isoformat(), b=br.id) }}">Next ›</a>
+  </div>
+  {% if all_b|length > 1 %}<div class="pills">{% for b in all_b %}<a class="{{ 'active' if b.id == br.id }}" href="{{ url_for('appt.board', date=d.isoformat(), b=b.id) }}">{{ b.name }}</a>{% endfor %}</div>{% endif %}
+  <div class="row"><span class="badge gold">{{ stats.total }} bookings</span><span class="badge ok">{{ stats.done }} done</span><span class="badge bad">{{ stats.cancelled }} cancelled / no-show</span><span class="badge">{{ stats.value|inr }} booked value</span></div>
+</div>
+
+{% if rk and current_user.is_manager %}
+<div class="card flat mb row between" style="padding:12px 16px">
+  <div class="row">{{ ui.avatar(rk) }}<div><b>{{ rk.name }}</b> works from
+    <b class="gold">{{ 'no branch (off)' if not rk_loc else (all_b|selectattr('id','equalto',rk_loc)|map(attribute='name')|first or 'another branch') }}</b> on this day.<br>
+    <small>RK is bookable only at the branch he is working from. Change it for any day – bookings follow automatically.</small></div></div>
+  <button class="btn sm" data-modal="rkModal">{{ ui.icon('pin') }} Change RK's branch for this day</button>
+</div>
+{% endif %}
+
+{% if cols %}
+<div class="board-wrap"><div class="board" style="grid-template-columns:64px repeat({{ cols|length }},minmax(210px,1fr))">
+  <div class="b-head">Time</div>
+  {% for col in cols %}<div class="b-head">{{ col.e.name.split('(')[0] }}<small>{{ col.e.role_label }} · {{ col.appts|selectattr('is_active')|list|length }} booked</small></div>{% endfor %}
+  {% set H = (c - o) * ppm %}
+  <div class="b-timecol" style="height:{{ H }}px">{% for t in range(o, c, step) %}<span class="tl" style="top:{{ (t - o) * ppm }}px">{{ '%d:%02d %s'|format((t // 60) % 12 or 12, t % 60, 'AM' if t < 720 else 'PM') }}</span>{% endfor %}</div>
+  {% for col in cols %}
+  <div class="b-col" style="height:{{ H }}px">
+    {% for t in range(o, c, step) %}<a class="slot-link" style="top:{{ (t - o) * ppm }}px;height:{{ step * ppm }}px" href="{{ url_for('appt.new', date=d.isoformat(), time='%02d:%02d'|format(t // 60, t % 60), employee=col.e.id, branch=br.id) }}" title="Book {{ col.e.name.split('(')[0] }} at {{ '%02d:%02d'|format(t // 60, t % 60) }}"><span>+</span></a>{% endfor %}
+    {% for b in col.blocks %}{% set sm = b.start_dt.hour * 60 + b.start_dt.minute %}{% set dm = ((b.end_dt - b.start_dt).total_seconds() // 60)|int %}
+      <div class="appt blocked" style="top:{{ (sm - o) * ppm }}px;height:{{ dm * ppm - 3 }}px"><b>Blocked</b> {{ b.start_dt|tfmt }}–{{ b.end_dt|tfmt }}<br>{{ b.reason }}
+        <form method="post" action="{{ url_for('appt.block_delete', bid=b.id) }}" class="inline"><button class="btn sm ghost" style="padding:1px 8px">Remove</button></form></div>{% endfor %}
+    {% for a in col.appts %}{% set sm = a.start_dt.hour * 60 + a.start_dt.minute %}
+      <a class="appt s-{{ a.status }}" style="top:{{ (sm - o) * ppm }}px;height:{{ a.duration * ppm - 3 }}px" href="{{ url_for('appt.view', aid=a.id) }}" title="{{ a.client.name }} · {{ a.service_names }}">
+        <b>{{ a.start_dt|tfmt }}</b> · {{ a.client.name }}<br><span class="muted">{{ a.service_names[:60] }}</span>{% if a.duration >= 60 %}<br>{{ ui.status(a.status) }} {% if a.source in ('online','website','instagram') %}<span class="badge">online</span>{% endif %}{% endif %}</a>{% endfor %}
+    {% if now_min and o <= now_min <= c %}<div class="now-line" style="top:{{ (now_min - o) * ppm }}px"></div>{% endif %}
+  </div>{% endfor %}
+</div></div>
+<p class="hint mt-s">Tip: click any empty cell to book that stylist at that time. Click a booking to view, modify, cancel or bill.</p>
+{% else %}<div class="card empty">No stylist who takes appointments is working at {{ br.name }} on this day.{% if current_user.is_manager %} Change a stylist's branch or weekly off in HR.{% endif %}</div>{% endif %}
+
+{% if unassigned %}<div class="card mt"><div class="card-h"><h3>Unassigned bookings</h3></div>{% for a in unassigned %}<a class="list-item" href="{{ url_for('appt.view', aid=a.id) }}"><b>{{ a.start_dt|tfmt }}</b><span class="grow">{{ a.client.name }} · {{ a.service_names }}</span>{{ ui.status(a.status) }}</a>{% endfor %}</div>{% endif %}
+
+<dialog class="modal" id="blockModal"><form method="post" action="{{ url_for('appt.block') }}">
+  <div class="m-h"><h2>Block a time window</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field"><label>Employee</label><select name="employee_id">{% for col in cols %}<option value="{{ col.e.id }}">{{ col.e.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Date</label><input type="date" name="date" value="{{ d.isoformat() }}" required></div>
+    <div class="field"><label>From</label><input type="time" name="from" value="13:00" required></div>
+    <div class="field"><label>To</label><input type="time" name="to" value="14:00" required></div>
+    <div class="field full"><label>Reason</label><input name="reason" placeholder="Lunch, meeting, training…"></div>
+  </div><p class="hint">No one can book this window – online or offline – until you remove the block.</p></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Block time</button></div></form></dialog>
+
+{% if rk %}<dialog class="modal" id="rkModal"><form method="post" action="{{ url_for('appt.location') }}">
+  <div class="m-h"><h2>RK's branch on {{ d|dfmt('%a, %d %b') }}</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><input type="hidden" name="employee_id" value="{{ rk.id }}"><input type="hidden" name="date" value="{{ d.isoformat() }}">
+    <div class="form-grid"><div class="field"><label>Works from</label><select name="branch_id">
+      <option value="default">Default branch ({{ rk.home_branch.name }})</option>
+      {% for b in all_b %}<option value="{{ b.id }}" {{ 'selected' if rk_loc == b.id and rk_loc != rk.home_branch_id }}>{{ b.name }}</option>{% endfor %}
+      <option value="0">Not working (off)</option></select></div>
+      <div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. Guest day"></div></div>
+    <p class="hint">Existing bookings must be moved or cancelled first. Online clients will see RK only at the branch he is working from.</p></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save</button></div></form></dialog>{% endif %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Balance sheet</h1><p>{{ label }} · {{ 'All branches' if not scope_branch else scope_branch.name }} · {{ fy }}</p></div><button class="btn no-print" onclick="window.print()">{{ ui.icon('printer') }} Print / save PDF</button></div>
+{% include 'finance/_tabs.html' %}
+{{ ui.period_bar(key, d1, d2) }}
+{% set o = B.open %}{% set c = B.close %}
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>Assets — what the business has</h2></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Particulars</th><th class="num">Start of period<br><small>{{ d1|dfmt }}</small></th><th class="num">End of period<br><small>{{ d2|dfmt }}</small></th></tr></thead><tbody>
+      <tr><td><b>Cash in hand</b></td><td class="num">{{ o.cash|inr }}</td><td class="num">{{ c.cash|inr }}</td></tr>
+      {% for a, v in c.by_type.cash %}<tr><td>&nbsp;&nbsp;<small>{{ a.name }}</small></td><td class="num"><small>&nbsp;</small></td><td class="num"><small>{{ v|inr }}</small></td></tr>{% endfor %}
+      <tr><td><b>Bank accounts</b></td><td class="num">{{ o.bank|inr }}</td><td class="num">{{ c.bank|inr }}</td></tr>
+      {% for a, v in c.by_type.bank %}<tr><td>&nbsp;&nbsp;<small>{{ a.name }}</small></td><td class="num"></td><td class="num"><small>{{ v|inr }}</small></td></tr>{% endfor %}
+      <tr><td><b>UPI accounts</b></td><td class="num">{{ o.upi|inr }}</td><td class="num">{{ c.upi|inr }}</td></tr>
+      {% for a, v in c.by_type.upi %}<tr><td>&nbsp;&nbsp;<small>{{ a.name }}</small></td><td class="num"></td><td class="num"><small>{{ v|inr }}</small></td></tr>{% endfor %}
+      <tr><td><b>Card settlements receivable</b></td><td class="num">{{ o.card|inr }}</td><td class="num">{{ c.card|inr }}</td></tr>
+      <tr><td><b>Inventory (stock at cost)</b></td><td class="num">{{ o.inventory|inr }}</td><td class="num">{{ c.inventory|inr }}</td></tr>
+      <tr class="total"><td>Total assets</td><td class="num">{{ o.assets|inr }}</td><td class="num">{{ c.assets|inr }}</td></tr></tbody></table></div></div>
+  <div class="card"><div class="card-h"><h2>Liabilities & equity — who has a claim</h2></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Particulars</th><th class="num">Start of period</th><th class="num">End of period</th></tr></thead><tbody>
+      <tr><td><b>Tips payable to employees</b><br><small>collected, not yet paid out</small></td><td class="num">{{ o.tips|inr }}</td><td class="num">{{ c.tips|inr }}</td></tr>
+      <tr><td><b>Vendors payable</b><br><small>stock bills not yet paid</small></td><td class="num">{{ o.vendors|inr }}</td><td class="num">{{ c.vendors|inr }}</td></tr>
+      <tr><td><b>GST payable</b></td><td class="num">{{ o.gst|inr }}</td><td class="num">{{ c.gst|inr }}</td></tr>
+      <tr class="total"><td>Total liabilities</td><td class="num">{{ o.liabilities|inr }}</td><td class="num">{{ c.liabilities|inr }}</td></tr>
+      <tr class="bold"><td>Owner's equity (assets − liabilities)</td><td class="num">{{ o.equity|inr }}</td><td class="num">{{ c.equity|inr }}</td></tr>
+      <tr class="total"><td>Total liabilities + equity</td><td class="num">{{ (o.liabilities + o.equity)|inr }}</td><td class="num">{{ (c.liabilities + c.equity)|inr }}</td></tr></tbody></table></div></div>
+</div>
+<div class="grid g2 mt">
+  <div class="card"><div class="card-h"><h2>How equity moved in this period</h2></div>
+    <div class="stat-row"><span>Equity at start</span><b>{{ o.equity|inr }}</b></div>
+    <div class="stat-row"><span>+ Net profit for the period</span><b class="{{ 'ok' if B.pnl.net_profit >= 0 else 'bad' }}">{{ B.pnl.net_profit|inr }}</b></div>
+    <div class="stat-row"><span>+ Capital introduced by owner</span><b>{{ B.capital|inr }}</b></div>
+    <div class="stat-row"><span>− Owner drawings</span><b>{{ B.drawings|inr }}</b></div>
+    {% if B.other|abs > 1 %}<div class="stat-row"><span>± {{ 'Funds sent to / received from Head Office & inter-branch transfers' if not full else 'Other adjustments' }}</span><b>{{ B.other|inr }}</b></div>{% endif %}
+    <div class="stat-row"><span><b>Equity at end</b></span><b class="gold">{{ c.equity|inr }}</b></div>
+    {% if full and B.other|abs <= 1 %}<p class="hint mt-s ok">✔ Books are balanced: assets = liabilities + equity, and the equity movement is fully explained.</p>{% endif %}
+    {% if not full and not scope_branch is none %}<p class="hint mt-s">Branch view: cash swept to the company bank account is shown as funds sent to Head Office.</p>{% endif %}</div>
+  <div class="card"><div class="card-h"><h2>Profit & loss for the period</h2></div>
+    <div class="stat-row"><span>Business income</span><b>{{ B.pnl.total_revenue|inr }}</b></div><div class="stat-row"><span>− Cost of stock used</span><b>{{ B.pnl.stock_cost|inr }}</b></div>
+    <div class="stat-row"><span>Gross profit</span><b>{{ B.pnl.gross_profit|inr }}</b></div><div class="stat-row"><span>− Operating expenses</span><b>{{ B.pnl.total_expense|inr }}</b></div>
+    <div class="stat-row"><span><b>Net profit</b></span><b class="gold">{{ B.pnl.net_profit|inr }}</b></div>
+    <a class="btn sm mt-s no-print" href="{{ url_for('rep.view', key='pnl', p=key) }}">Full P&L report</a></div>
+</div>
+<p class="hint mt-s">Notes: inventory is valued at cost; tips and GST collected belong to employees / government, so they appear as liabilities and never as income. Salaries are booked when paid.</p>
+{% endblock %}

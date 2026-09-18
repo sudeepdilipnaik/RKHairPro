@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Announcements</h1><p>Post company or branch communication to all employees – it appears in their app instantly and can also go out on WhatsApp.</p></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="grid g-main">
+  <div class="grid">{% for a in rows %}<div class="card"><div class="card-h"><h3>{% if a.pinned %}📌 {% endif %}{{ a.title }}</h3><div class="row"><span class="badge">{{ a.branch.name if a.branch else 'Everyone' }}</span><small class="muted">{{ a.created_at|dtfmt }}</small>
+    <form method="post" data-confirm="Delete this announcement?" class="inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ a.id }}"><button class="btn sm ghost danger">{{ ui.icon('trash') }}</button></form></div></div><p style="margin:0;white-space:pre-wrap">{{ a.body }}</p></div>
+  {% else %}<div class="card empty">Nothing posted yet.</div>{% endfor %}</div>
+  <form method="post" class="card" style="align-self:start"><div class="card-h"><h2>New announcement</h2></div><div class="grid" style="gap:12px">
+    <div class="field"><label>Title</label><input name="title" required></div><div class="field"><label>Message</label><textarea name="body" rows="5" required></textarea></div>
+    {% if not current_user.branch_id %}<div class="field"><label>Audience</label><select name="branch_id"><option value="">All employees</option>{% for b in branches %}<option value="{{ b.id }}">{{ b.name }} only</option>{% endfor %}</select></div>{% endif %}
+    <label class="check"><input type="checkbox" name="pinned" value="1"> Pin to top</label><label class="check"><input type="checkbox" name="whatsapp" value="1"> Also send on WhatsApp (demo)</label>
+    <button class="btn gold">{{ ui.icon('send') }} Post</button></div></form>
+</div>
+{% endblock %}

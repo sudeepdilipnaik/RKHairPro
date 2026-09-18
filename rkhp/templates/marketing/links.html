@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Booking links</h1><p>Put these links in your Instagram bio, website, Google profile and WhatsApp. Every booking records where it came from.</p></div><a class="btn" href="{{ url_for('public.home') }}" target="_blank">{{ ui.icon('globe') }} View public website</a></div>
+{% include 'marketing/_tabs.html' %}
+<div class="card">
+{% for label, src in rows %}<div class="list-item"><div style="min-width:200px"><b>{{ label }}</b><br><small class="muted">source: {{ src }}</small></div><input readonly value="{{ base }}/book?src={{ src }}" id="l_{{ src }}" onclick="this.select()"><button class="btn sm" onclick="navigator.clipboard.writeText(document.getElementById('l_{{ src }}').value);this.textContent='Copied ✔'">Copy</button></div>{% endfor %}
+<div class="list-item"><div style="min-width:200px"><b>Public website</b></div><input readonly value="{{ base }}/" onclick="this.select()"></div></div>
+<p class="hint mt-s">When you host the app on the internet, these links will use your real domain. Online clients pick the branch, stylist and time from live drop-downs and get an instant WhatsApp confirmation and a reminder 1 hour before.</p>
+{% endblock %}

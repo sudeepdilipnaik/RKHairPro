@@ -1,0 +1,10 @@
+<div class="tabs no-print">
+  <a class="{{ 'active' if request.endpoint == 'mkt.index' }}" href="{{ url_for('mkt.index') }}">{{ ui.icon('megaphone') }} Overview</a>
+  <a class="{{ 'active' if request.endpoint == 'mkt.campaigns' }}" href="{{ url_for('mkt.campaigns') }}">{{ ui.icon('chat') }} Campaigns</a>
+  <a class="{{ 'active' if request.endpoint == 'mkt.coupons' }}" href="{{ url_for('mkt.coupons') }}">{{ ui.icon('tag') }} Offers & coupons</a>
+  <a class="{{ 'active' if request.endpoint == 'mkt.leads' }}" href="{{ url_for('mkt.leads') }}">{{ ui.icon('users') }} Leads</a>
+  <a class="{{ 'active' if request.endpoint == 'mkt.feedback' }}" href="{{ url_for('mkt.feedback') }}">{{ ui.icon('star') }} Feedback</a>
+  {% if current_user.has_perm('website') %}<a href="{{ url_for('web.index') }}">{{ ui.icon('globe') }} Website Studio</a>{% endif %}
+  <a class="{{ 'active' if request.endpoint == 'mkt.links' }}" href="{{ url_for('mkt.links') }}">{{ ui.icon('link') }} Booking links</a>
+  <a href="{{ url_for('clients.index') }}">{{ ui.icon('user') }} Clients</a>
+</div>

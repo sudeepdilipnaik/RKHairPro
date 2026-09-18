@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Leave requests</h1><p>Employees apply from their app. Rule: {{ setting('paid_leaves_per_month') }} paid leave per month; extra leave is unpaid and deducted from salary. Weekly off is paid.</p></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td><b>{{ r.employee.name }}</b><br><small>{{ r.employee.branch.name if r.employee.branch }}</small></td><td>{{ r.from_date|dfmt('%d %b') }}{% if r.days > 1 %} – {{ r.to_date|dfmt('%d %b') }}{% endif %}</td><td>{{ r.days }}</td><td>{{ r.kind|title }}</td><td>{{ r.reason or '' }}</td><td>{{ ui.status(r.status) }}</td>
+<td class="nowrap">{% if r.status == 'pending' and current_user.is_manager %}<form class="inline" method="post" action="{{ url_for('hr.leave_decide', lid=r.id, act='approve') }}"><button class="btn sm ok">Approve</button></form> <form class="inline" method="post" action="{{ url_for('hr.leave_decide', lid=r.id, act='reject') }}"><button class="btn sm danger">Reject</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="empty">No leave requests.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

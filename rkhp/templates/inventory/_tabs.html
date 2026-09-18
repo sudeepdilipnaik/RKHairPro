@@ -1,0 +1,10 @@
+<div class="tabs no-print">
+  <a class="{{ 'active' if request.endpoint == 'inv.index' }}" href="{{ url_for('inv.index') }}">{{ ui.icon('package') }} Stock</a>
+  <a class="{{ 'active' if request.endpoint == 'inv.receive' }}" href="{{ url_for('inv.receive') }}">{{ ui.icon('plus') }} Receive stock</a>
+  <a class="{{ 'active' if request.endpoint == 'inv.use' }}" href="{{ url_for('inv.use') }}">{{ ui.icon('scissors') }} Use / wastage</a>
+  <a class="{{ 'active' if request.endpoint == 'inv.moves' }}" href="{{ url_for('inv.moves') }}">{{ ui.icon('list') }} Movements</a>
+  <a class="{{ 'active' if request.endpoint == 'inv.requests_' }}" href="{{ url_for('inv.requests_') }}">{{ ui.icon('send') }} Stock requests</a>
+  <a class="{{ 'active' if request.endpoint in ('inv.vendors','inv.vendor_view') }}" href="{{ url_for('inv.vendors') }}">{{ ui.icon('users') }} Vendors</a>
+  <a class="{{ 'active' if request.endpoint == 'inv.items' }}" href="{{ url_for('inv.items') }}">{{ ui.icon('tag') }} Item master</a>
+  <a href="{{ url_for('rep.index', dept='inventory') }}">{{ ui.icon('chart') }} Reports</a>
+</div>

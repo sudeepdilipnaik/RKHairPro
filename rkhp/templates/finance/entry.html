@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>{{ 'Add income' if kind == 'in' else ('Petty / minor expense' if petty else 'Add expense') }}</h1>
+  <p>{% if kind == 'in' %}Record money received that isn't a client bill – product sales, membership, other income, owner capital, or a tip.{% else %}Record every rupee that goes out – cash, UPI or cheque. Even small petty expenses.{% endif %}</p></div><a class="btn" href="{{ url_for('fin.ledger') }}">Cancel</a></div>
+<form method="post" class="card" style="max-width:860px" id="entryform">
+  <input type="hidden" name="kind" value="{{ kind }}">
+  <div class="form-grid">
+    {{ ui.branch_select() }}
+    <div class="field"><label>Date</label><input type="date" name="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required></div>
+    <div class="field"><label>{{ 'Income head' if kind == 'in' else 'Expense head' }}</label>
+      <select name="category_id" id="head" required>{% for h in heads %}<option value="{{ h.id }}" data-nature="{{ h.nature }}" {{ 'selected' if petty and h.name == 'Petty Cash & Misc' }}>{{ h.name }}{% if h.group %} — {{ h.group }}{% endif %}</option>{% endfor %}</select></div>
+    <div class="field"><label>Amount ₹</label><input name="amount" type="number" min="1" step="0.01" required autofocus></div>
+    <div class="field"><label>{{ 'Received via' if kind == 'in' else 'Paid via' }}</label>
+      <select name="mode" id="mode"><option value="cash">Cash</option><option value="upi">UPI</option>{% if kind == 'in' %}<option value="card">Credit / debit card</option><option value="bank">Bank transfer</option>{% else %}<option value="cheque">Cheque</option><option value="bank">Bank transfer / NEFT</option>{% endif %}</select></div>
+    <div class="field"><label>Account</label><select name="account_id" id="acct"></select><span class="hint">Choose which UPI / bank account was used.</span></div>
+    <div class="field" id="empbox" style="display:none"><label>Employee</label><select name="employee_id"><option value="">—</option>{% for e in emps %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>{{ 'Received from' if kind == 'in' else 'Paid to (vendor / person)' }}</label><input name="party" placeholder="Name"></div>
+    <div class="field"><label>Reference (cheque no. / UTR)</label><input name="reference"></div>
+    <div class="field full"><label>Notes / purpose</label><input name="notes" placeholder="What was this for?"></div>
+    {% if kind == 'out' %}<label class="check full"><input type="checkbox" name="petty" value="1" {{ 'checked' if petty }}> Mark as petty / minor expense (shows in the Petty cash report)</label>{% endif %}
+  </div>
+  <button class="btn gold lg mt">{{ ui.icon('check') }} Save entry</button>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+const ACC={{ accounts_json|tojson }}, TYPE={cash:'cash',upi:'upi',card:'card',cheque:'bank',bank:'bank'};
+const mode=document.getElementById('mode'), acct=document.getElementById('acct'), head=document.getElementById('head'), br=document.querySelector('[name=branch_id]');
+function fill(){const b=+br.value, t=TYPE[mode.value]; let l=ACC.filter(a=>a.type===t&&(!a.branch||a.branch===b)); if(!l.length) l=ACC.filter(a=>a.type===t);
+  acct.innerHTML=l.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')||'<option value="">— default account —</option>';}
+function nat(){document.getElementById('empbox').style.display=head.selectedOptions[0].dataset.nature==='tip_in'?'':'none';}
+mode.onchange=fill; head.onchange=nat; br.onchange=fill; fill(); nat();
+</script>{% endblock %}

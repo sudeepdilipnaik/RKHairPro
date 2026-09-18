@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div class="row">{{ ui.avatar(e, 'lg') }}<div><h1>{{ e.name }}</h1><p>{{ e.designation or '' }} · {{ ui.badge(e.role_label, 'gold') }} · {{ e.mobile }}{% if e.manager %} · reports to {{ e.manager.name.split('(')[0] }}{% endif %}</p></div></div>
+  <div class="row"><a class="btn" href="{{ url_for('hr.employee_form', eid=e.id) }}">{{ ui.icon('edit') }} Edit</a><a class="btn" href="{{ url_for('hr.employees') }}">All employees</a></div></div>
+<div class="kpi-grid mb">
+  {{ ui.kpi('Service revenue (MTD)', rev|inr, 'commission ' + '%g'|format(e.commission_pct) + '% = ' + (rev * e.commission_pct / 100)|inr, plain=True) }}
+  {{ ui.kpi('Tip balance', tips|inr, 'paid ' + ('daily' if e.tip_mode == 'daily' else 'with salary'), plain=True) }}
+  {{ ui.kpi('Attendance (MTD)', s.present|string + ' present', s.late|string + ' late · ' + s.early|string + ' early · ' + s.absent|string + ' absent · ' + s.half|string + ' half', plain=True) }}
+  {{ ui.kpi('Salary', e.salary|inr if e.role != 'super_admin' else 'Owner', ('per day ' + e.per_day|inr) if e.role != 'super_admin' else '', plain=True) }}
+</div>
+<div class="grid g-main">
+  <div class="grid">
+    <div class="card"><div class="card-h"><h2>Profile & KYC</h2></div><dl class="kv">
+      <dt>Branch</dt><dd>{{ e.home_branch.name if e.home_branch else 'All' }}</dd><dt>Weekly off</dt><dd>{{ weekdays[e.weekly_off] }}</dd><dt>Shift</dt><dd>{{ e.shift_start|tfmt }} – {{ e.shift_end|tfmt }}</dd>
+      <dt>Joined</dt><dd>{{ e.joined_on|dfmt }}</dd><dt>Date of birth</dt><dd>{{ e.dob|dfmt if e.dob else '—' }}</dd><dt>Email</dt><dd>{{ e.email or '—' }}</dd><dt>Address</dt><dd>{{ e.address or '—' }}</dd>
+      <dt>Aadhaar</dt><dd>{{ e.aadhaar or '—' }} {% if e.aadhaar_doc %}<a href="{{ url_for('hr.files', name=e.aadhaar_doc) }}" target="_blank">copy</a>{% endif %}</dd>
+      <dt>PAN</dt><dd>{{ e.pan or '—' }} {% if e.pan_doc %}<a href="{{ url_for('hr.files', name=e.pan_doc) }}" target="_blank">copy</a>{% endif %}</dd>
+      <dt>Bank</dt><dd>{{ e.bank_name or '—' }} {{ e.bank_account or '' }} {{ e.ifsc or '' }}</dd><dt>UPI</dt><dd>{{ e.upi_id or '—' }}</dd>
+      <dt>Emergency</dt><dd>{{ e.emergency_name or '—' }} {{ e.emergency_phone or '' }}</dd>
+      <dt>Permissions</dt><dd>{% for p in e.perm_set %}<span class="badge">{{ p }}</span> {% else %}Portal only{% endfor %}</dd></dl></div>
+    {% if e.role != 'super_admin' %}<div class="card"><div class="card-h"><h2>Recent attendance</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Worked</th><th>Status</th><th>Method</th></tr></thead><tbody>
+      {% for a in recent %}<tr><td>{{ a.date|dfmt('%a %d %b') }}</td><td>{{ a.check_in|tfmt }}{% if a.late_min %} <span class="badge warn">late {{ a.late_min }}m</span>{% endif %}</td><td>{{ a.check_out|tfmt }}{% if a.early_min %} <span class="badge warn">early {{ a.early_min }}m</span>{% endif %}</td><td>{{ a.worked_min // 60 }}h {{ a.worked_min % 60 }}m</td><td>{{ ui.status(a.status) if a.status not in ('present','half_day','absent','leave') else ui.badge(a.status|replace('_',' ')|title, 'ok' if a.status == 'present' else 'warn') }}</td><td>{{ a.method }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><div class="card-h"><h3>App access & account</h3></div>
+      <div class="stat-row"><span>Status</span><b>{% if not e.active %}Ex-employee{% elif e.login_blocked %}<span class="bad">Blocked</span>{% else %}<span class="ok">Active</span>{% endif %}</b></div>
+      <div class="grid mt-s" style="gap:8px">
+      {% if e.role != 'super_admin' %}
+        {% if e.login_blocked %}<form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}"><input type="hidden" name="action" value="unblock"><button class="btn ok block">Restore access</button></form>
+        {% else %}<form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}" data-confirm="Block {{ e.name }} from logging in?"><input type="hidden" name="action" value="block"><button class="btn danger block">{{ ui.icon('lock') }} Block app access</button></form>{% endif %}
+        <button class="btn block" data-modal="pwModal">Reset password</button>
+        {% if e.active %}<form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}" data-confirm="Mark {{ e.name }} as an ex-employee? History is kept."><input type="hidden" name="action" value="deactivate"><button class="btn block">Mark as ex-employee</button></form>
+        {% else %}<form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}"><input type="hidden" name="action" value="reactivate"><button class="btn block">Reactivate</button></form>{% endif %}
+        {% if current_user.is_super %}<form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}" data-confirm="Permanently delete this employee? Only possible if there is no history."><input type="hidden" name="action" value="delete"><button class="btn danger block">{{ ui.icon('trash') }} Delete</button></form>{% endif %}
+      {% endif %}</div></div>
+    {% if e.role != 'super_admin' %}<div class="card"><div class="card-h"><h3>{{ 'Change role' if current_user.is_super else 'Request role change' }}</h3></div>
+      <form method="post" action="{{ url_for('hr.role_request') }}"><input type="hidden" name="employee_id" value="{{ e.id }}">
+        <div class="field"><label>New role</label><select name="to_role">{% for k, l in roles if k != 'super_admin' %}<option value="{{ k }}" {{ 'selected' if e.role == k }}>{{ l }}</option>{% endfor %}</select></div>
+        {% if not current_user.is_super %}<div class="field mt-s"><label>Reason</label><input name="reason" required placeholder="Why should this change?"></div>{% endif %}
+        <button class="btn gold block mt-s">{{ 'Apply' if current_user.is_super else 'Send to Super Admin for approval' }}</button></form>
+      {% for r in reqs %}<div class="list-item"><div class="grow"><small>{{ r.from_role|replace('_',' ') }} → {{ r.to_role|replace('_',' ') }}</small></div>{{ ui.status(r.status) }}</div>{% endfor %}</div>{% endif %}
+    {% if current_user.is_manager and e.takes_appointments %}<div class="card"><div class="card-h"><h3>Branch on a particular day</h3></div>
+      <p class="hint" style="margin-top:0">{{ e.name.split('(')[0] }} works at <b>{{ e.home_branch.name }}</b> by default. Pick another branch for a specific day.</p>
+      <form method="post" action="{{ url_for('appt.location') }}"><input type="hidden" name="employee_id" value="{{ e.id }}"><div class="form-grid"><div class="field"><label>Date</label><input type="date" name="date" min="{{ today.isoformat() }}" required></div>
+        <div class="field"><label>Works from</label><select name="branch_id"><option value="default">Default branch</option>{% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}<option value="0">Off (no branch)</option></select></div></div><button class="btn block mt-s">Save for that day</button></form>
+      {% for o in overrides %}<div class="list-item"><div class="grow">{{ o.date|dfmt('%a %d %b') }} → <b>{{ o.branch.name if o.branch else 'Off' }}</b></div></div>{% endfor %}</div>{% endif %}
+  </div>
+</div>
+<dialog class="modal" id="pwModal"><form method="post" action="{{ url_for('hr.employee_action', eid=e.id) }}"><input type="hidden" name="action" value="reset"><div class="m-h"><h2>Reset password</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="field"><label>New password (anything)</label><input name="password" value="Gold@123"></div></div><div class="m-f"><button class="btn gold">Reset</button></div></form></dialog>
+{% endblock %}

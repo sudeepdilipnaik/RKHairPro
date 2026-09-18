@@ -1,0 +1,59 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="pub-wrap">
+<form method="post" id="bookform" autocomplete="off">
+  <input type="hidden" name="src" value="{{ src }}">
+  <div class="page-h" style="padding-top:26px"><div><h1 class="gold-text">Book your appointment</h1><p>Real-time availability – choose your branch, services, stylist and time.</p></div></div>
+  <div class="book-grid">
+    <div class="grid">
+      <div class="card">
+        <div class="sec-h"><span class="n">1</span><h2>Choose branch</h2></div>
+        <div class="form-grid">
+          <div class="field"><label>Branch</label>
+            <select name="branch_id" required>
+              <option value="">Select a branch…</option>
+              {% for b in branches %}<option value="{{ b.id }}" {{ 'selected' if (f.get('branch_id') or request.args.get('branch')) == b.id|string }}>{{ b.name }} – {{ b.address }}</option>{% endfor %}
+            </select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-h"><span class="n">2</span><h2>Choose services</h2></div>
+        {% for c in cats %}{% if svcs[c.id] %}<div class="svc-cat"><div class="t">{{ c.name }}</div><div class="svc-opts">
+          {% for s in svcs[c.id] %}<label class="svc-opt"><input type="checkbox" name="services" value="{{ s.id }}" data-price="{{ s.price }}" data-dur="{{ s.duration }}" data-name="{{ s.name }}" {{ 'checked' if s.id|string in f.getlist('services') or (not f and request.args.get('service') == s.id|string) }}>
+            <span class="meta">{{ s.name }}<small>{{ s.gender }} · {{ s.duration }} min</small></span><b class="gold">{{ s.price|inr }}</b></label>{% endfor %}
+        </div></div>{% endif %}{% endfor %}
+      </div>
+      <div class="card">
+        <div class="sec-h"><span class="n">3</span><h2>Date, stylist &amp; time</h2></div>
+        <div class="form-grid">
+          <div class="field"><label>Date</label><input type="date" name="date" min="{{ today.isoformat() }}" value="{{ f.get('date') or default_date.isoformat() }}" required></div>
+          <div class="field"><label>Stylist</label><select name="employee_id" data-selected="{{ f.get('employee_id') or request.args.get('employee','') }}"><option value="">Any available stylist</option></select></div>
+          <div class="field"><label>Time slot</label><select name="time" required data-selected="{{ f.get('time','') }}"><option value="">Choose branch, services and date first</option></select></div>
+        </div>
+        <div class="notice" id="slot-msg"></div>
+      </div>
+      <div class="card">
+        <div class="sec-h"><span class="n">4</span><h2>Your details</h2></div>
+        <div class="form-grid">
+          <div class="field"><label>Full name</label><input name="name" required value="{{ f.get('name','') }}" placeholder="e.g. Aarav Mehta"></div>
+          <div class="field"><label>Mobile (WhatsApp)</label><input name="mobile" type="tel" inputmode="numeric" required maxlength="14" value="{{ f.get('mobile','') }}" placeholder="10-digit number"></div>
+          <div class="field"><label>Email (optional)</label><input name="email" type="email" value="{{ f.get('email','') }}"></div>
+          <div class="field full"><label>Notes for the stylist (optional)</label><textarea name="notes" placeholder="Reference photos, allergies, preferences…">{{ f.get('notes','') }}</textarea></div>
+        </div>
+      </div>
+    </div>
+    <aside class="card sticky" id="sum-box">
+      <h2 style="margin-bottom:10px">Your booking</h2>
+      <div data-s="list"></div>
+      <hr class="sep">
+      <div class="stat-row"><span>Estimated duration</span><b data-s="dur">—</b></div>
+      <div class="stat-row"><span>Estimated total</span><b class="gold" data-s="total" style="font-size:1.2rem">₹0</b></div>
+      <p class="hint mt-s">Pay at the salon after your service – cash, UPI or card. You'll get a WhatsApp confirmation now and a reminder 1 hour before.</p>
+      <button class="btn gold block lg mt-s" type="submit">{{ ui.icon('check') }} Confirm booking</button>
+    </aside>
+  </div>
+</form>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+<script>initBooking({form:'bookform', public:true});</script>{% endblock %}

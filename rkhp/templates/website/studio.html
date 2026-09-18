@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+{% macro txt(key, label, hint='', span='') %}<div class="field {{ span }}"><label>{{ label }}</label><input name="{{ key }}" value="{{ v[key] }}">{% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</div>{% endmacro %}
+<div class="page-h"><div><h1>Website Studio</h1><p>Edit everything visitors see on the public site – logo animation, videos, testimonials, text and photos. Changes go live the moment you save.</p></div>
+  <div class="row"><a class="btn gold" href="{{ url_for('public.home') }}" target="_blank" rel="noopener">{{ ui.icon('globe') }} Open live website</a><a class="btn" href="{{ url_for('sett.index', tab='contact') }}">{{ ui.icon('phone') }} Phone & social links</a></div></div>
+<div class="tabs">
+  {% for k, l, ic in [('content','Page content','edit'),('animation','Logo animation','play'),('videos','Video slider','camera'),('reviews','Testimonials','star')] %}<a class="{{ 'active' if tab == k }}" href="{{ url_for('web.index', tab=k) }}">{{ ui.icon(ic) }} {{ l }}</a>{% endfor %}
+</div>
+
+{% if tab == 'content' %}
+<form method="post" action="{{ url_for('web.content') }}" enctype="multipart/form-data" class="grid" style="max-width:980px">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('home') }} Top of the page (hero)</h2></div><div class="form-grid">
+    {{ txt('site_hero_eyebrow', 'Small line above the headline', span='full') }}
+    {{ txt('site_hero_title', 'Headline – white part') }}{{ txt('site_hero_title_gold', 'Headline – gold part') }}
+    <div class="field full"><label>Introduction text</label><textarea name="site_hero_lead" rows="3">{{ v.site_hero_lead }}</textarea></div></div>
+    <p class="hint mt-s">The logo animation itself is managed in the <a href="{{ url_for('web.index', tab='animation') }}">Logo animation</a> tab.</p></div>
+
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('user') }} Meet RK section</h2></div><div class="form-grid">
+    {{ txt('site_meet_eyebrow', 'Small heading') }}
+    <div class="field full"><label>About RK</label><textarea name="site_meet_text" rows="3">{{ v.site_meet_text }}</textarea></div>
+    <div class="field full"><label>Three highlight points (one per line)</label><textarea name="site_meet_points" rows="3">{{ v.site_meet_points }}</textarea></div>
+    <div class="field"><label>Replace RK's photo</label><input type="file" name="meet_photo" accept="image/*"><span class="hint">Portrait photo works best (4:5).</span></div>
+    <div class="field"><label>Current photo</label><div class="row"><img src="{{ url_for('public.media', name=v.site_meet_photo) if v.site_meet_photo else url_for('static', filename='img/owner_small.jpg') }}" alt="" style="height:90px;border-radius:10px;border:1px solid var(--gold-line)">
+      {% if v.site_meet_photo %}<label class="check"><input type="checkbox" name="remove_photo" value="1"> Use the original photo</label>{% endif %}</div></div></div></div>
+
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('list') }} Section headings</h2></div><div class="form-grid">
+    <div class="field full"><label class="lbl">Video slider</label></div>{{ txt('site_videos_eyebrow','Small heading') }}{{ txt('site_videos_title','Title – white') }}{{ txt('site_videos_gold','Title – gold') }}{{ txt('site_videos_sub','Sub-text', span='full') }}
+    <div class="field full"><label class="lbl">Services</label></div>{{ txt('site_services_eyebrow','Small heading') }}{{ txt('site_services_title','Title – white') }}{{ txt('site_services_gold','Title – gold') }}
+    <div class="field full"><label class="lbl">Testimonials</label></div>{{ txt('site_reviews_eyebrow','Small heading') }}{{ txt('site_reviews_title','Title – white') }}{{ txt('site_reviews_gold','Title – gold') }}
+    <div class="field full"><label class="lbl">Stylists</label></div>{{ txt('site_team_eyebrow','Small heading') }}{{ txt('site_team_title','Title – white') }}{{ txt('site_team_gold','Title – gold') }}
+    <div class="field full"><label class="lbl">Branches</label></div>{{ txt('site_branches_eyebrow','Small heading') }}{{ txt('site_branches_title','Title – white') }}{{ txt('site_branches_gold','Title – gold') }}
+    <div class="field full"><label class="lbl">Closing section</label></div>{{ txt('site_cta_title','Title – white') }}{{ txt('site_cta_gold','Title – gold') }}{{ txt('site_cta_sub','Sub-text', span='span2') }}</div></div>
+
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('eye') }} Show or hide sections</h2></div><div class="form-grid">
+    {% for k, l in sections %}<label class="check"><input type="checkbox" name="site_show_{{ k }}" value="1" {{ 'checked' if v['site_show_' ~ k] == '1' }}> {{ l }}</label>{% endfor %}</div>
+    <p class="hint mt-s">The hero, footer, Call button and booking page are always shown.</p></div>
+
+  <div class="row"><button class="btn gold lg">{{ ui.icon('check') }} Save changes</button>
+    <button class="btn danger" name="action" value="reset" data-confirm="Restore ALL page text, headings, section settings and RK's photo to the original defaults?" formnovalidate>Reset page content to defaults</button></div>
+</form>
+
+{% elif tab == 'animation' %}
+<div class="grid g2" style="max-width:1080px">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('play') }} Current animation</h2><span class="badge {{ 'ok' if hero.mode != 'none' else '' }}">{{ hero.label }}</span></div>
+    {% if hero.src %}<video src="{{ hero.src }}" controls preload="metadata" playsinline style="width:100%;border-radius:12px;border:1px solid var(--gold-line);background:#111"></video>
+      <p class="hint mt-s">File size: <b>{{ hero.mb }} MB</b>. {% if hero.mb > 10 %}<span class="warn">Large files take longer to load on mobile data. For the best experience compress to 720p (about 3–6 MB) with a free tool such as HandBrake and upload that version.</span>{% else %}Good size for fast loading.{% endif %}</p>
+    {% else %}<div class="empty">No animation – visitors see the static logo.</div>{% endif %}
+    <hr class="sep"><div class="row">
+      {% if hero.mode != 'default' %}<form method="post" action="{{ url_for('web.animation') }}"><input type="hidden" name="action" value="restore"><button class="btn">Restore original RK animation</button></form>{% endif %}
+      {% if hero.mode != 'none' %}<form method="post" action="{{ url_for('web.animation') }}" data-confirm="Remove the animation and show the static logo instead?"><input type="hidden" name="action" value="remove"><button class="btn danger">Use static logo instead</button></form>{% endif %}</div></div>
+  <div class="grid" style="align-content:start">
+    <form method="post" action="{{ url_for('web.animation') }}" enctype="multipart/form-data" class="card"><input type="hidden" name="action" value="upload">
+      <div class="card-h"><h2>{{ ui.icon('upload') }} Upload a new animation</h2></div>
+      <div class="field"><label>Video file (.mp4 / .webm / .mov)</label><input type="file" name="video_file" required accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"></div>
+      <p class="hint mt-s">Best on a dark / black background, landscape 16:9, 8–15 seconds. It replaces the logo in the centre of the home page and fades into the black hero.</p>
+      <button class="btn gold mt-s">{{ ui.icon('upload') }} Upload & publish</button></form>
+    <form method="post" action="{{ url_for('web.animation') }}" class="card"><input type="hidden" name="action" value="options"><div class="card-h"><h2>Options</h2></div>
+      <label class="check"><input type="checkbox" name="hero_loop" value="1" {{ 'checked' if v.hero_loop == '1' }}> Loop the animation (otherwise it plays once and holds on the logo)</label>
+      <label class="check mt-s"><input type="checkbox" name="hero_sound_btn" value="1" {{ 'checked' if v.hero_sound_btn == '1' }}> Show a "Play with sound" button (the animation always starts muted)</label>
+      <button class="btn mt-s">Save options</button></form>
+    <div class="card flat"><span class="hint">Visitors on data-saver or very slow connections, or with reduced-motion turned on, automatically see the static logo instead, so the page always loads fast.</span></div>
+  </div>
+</div>
+
+{% elif tab == 'videos' %}
+{% if n_sample %}<div class="card mb" style="border-color:rgba(242,182,77,.4)"><div class="row between"><div><b class="warn">{{ ui.icon('alert') }} {{ n_sample }} sample item(s) are showing on the website</b><br><span class="muted">Upload RK's real videos and testimonials, then remove the samples.</span></div>
+  <form method="post" action="{{ url_for('web.items') }}" data-confirm="Remove all sample items from the website?"><input type="hidden" name="action" value="clear_samples"><button class="btn danger">{{ ui.icon('trash') }} Remove all sample items</button></form></div></div>{% endif %}
+<div class="card"><div class="card-h"><h2>{{ ui.icon('play') }} Transformation videos <span class="badge gold">{{ videos|length }}</span></h2><button class="btn gold" data-modal="vidModal" data-fill-id="" data-fill-title="" data-fill-quote="" data-fill-client_name="" data-fill-video_url="" data-fill-sort="100" data-fill-active="1">{{ ui.icon('upload') }} Add video</button></div>
+  <p class="hint" style="margin-top:-6px">Vertical (9:16) clips of about 10–40 seconds look best, like Instagram Reels. Formats: .mp4, .webm, .mov (up to ~300 MB). You can also paste a YouTube link or a direct .mp4 link.</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px">
+  {% for t in videos %}<div class="card flat" style="padding:10px;{{ 'opacity:.55' if not t.active }}">
+    <div style="aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#15130d;position:relative;border:1px solid var(--line)">
+      {% if t.video_file %}<video src="{{ url_for('public.media', name=t.video_file) }}#t=0.5" muted preload="metadata" playsinline controls style="width:100%;height:100%;object-fit:cover"></video>
+      {% elif t.yt_id %}<img src="https://img.youtube.com/vi/{{ t.yt_id }}/hqdefault.jpg" alt="" style="width:100%;height:100%;object-fit:cover">
+      {% else %}<div style="height:100%;display:grid;place-items:center;color:var(--faint);text-align:center;padding:10px;font-size:.8rem">{{ 'External link' if t.video_url else 'No video yet' }}</div>{% endif %}
+      {% if t.is_sample %}<span class="badge warn" style="position:absolute;left:8px;top:8px">Sample</span>{% endif %}</div>
+    <div style="margin-top:8px"><b>{{ t.title }}</b><br><small class="muted">{{ t.tag }} · {{ t.client_name or '—' }}</small></div>
+    <div class="row" style="margin-top:8px;gap:6px">
+      <button class="btn sm" data-modal="vidModal" data-fill-id="{{ t.id }}" data-fill-title="{{ t.title or '' }}" data-fill-tag="{{ t.tag or 'Other' }}" data-fill-client_name="{{ t.client_name or '' }}" data-fill-quote="{{ t.quote or '' }}" data-fill-video_url="{{ t.video_url or '' }}" data-fill-sort="{{ t.sort }}" data-fill-active="{{ 1 if t.active else 0 }}">Edit</button>
+      <form method="post" action="{{ url_for('web.items') }}" class="inline"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ t.id }}"><button class="btn sm">{{ 'Hide' if t.active else 'Show' }}</button></form>
+      <form method="post" action="{{ url_for('web.items') }}" class="inline" data-confirm="Delete this video?"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ t.id }}"><button class="btn sm danger">{{ ui.icon('trash') }}</button></form></div></div>
+  {% else %}<div class="empty" style="grid-column:1/-1">No videos yet – click <b>Add video</b>.</div>{% endfor %}</div></div>
+
+{% elif tab == 'reviews' %}
+<div class="card"><div class="card-h"><h2>{{ ui.icon('star') }} Client testimonials <span class="badge gold">{{ quotes|length }}</span></h2><button class="btn gold" data-modal="quoteModal" data-fill-id="" data-fill-client_name="" data-fill-title="" data-fill-quote="" data-fill-rating="5" data-fill-sort="100" data-fill-active="1">{{ ui.icon('plus') }} Add testimonial</button></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Client</th><th>Service</th><th>Testimonial</th><th>Rating</th><th>Order</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for t in quotes %}<tr><td><b>{{ t.client_name }}</b>{% if t.is_sample %} <span class="badge warn">Sample</span>{% endif %}</td><td>{{ t.title }}</td><td style="max-width:420px">{{ t.quote }}</td><td>{{ ui.stars(t.rating) }}</td><td>{{ t.sort }}</td><td>{{ ui.badge('Live','ok') if t.active else ui.badge('Hidden','') }}</td>
+  <td class="nowrap"><button class="btn sm" data-modal="quoteModal" data-fill-id="{{ t.id }}" data-fill-client_name="{{ t.client_name or '' }}" data-fill-title="{{ t.title or '' }}" data-fill-quote="{{ t.quote or '' }}" data-fill-rating="{{ t.rating }}" data-fill-sort="{{ t.sort }}" data-fill-active="{{ 1 if t.active else 0 }}">Edit</button>
+    <form method="post" action="{{ url_for('web.items') }}" class="inline"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ t.id }}"><input type="hidden" name="tab" value="reviews"><button class="btn sm">{{ 'Hide' if t.active else 'Show' }}</button></form>
+    <form method="post" action="{{ url_for('web.items') }}" class="inline" data-confirm="Delete this testimonial?"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ t.id }}"><input type="hidden" name="tab" value="reviews"><button class="btn sm danger">{{ ui.icon('trash') }}</button></form></td></tr>
+  {% else %}<tr><td colspan="7" class="empty">No testimonials yet.</td></tr>{% endfor %}</tbody></table></div>
+  {% if n_sample %}<form method="post" action="{{ url_for('web.items') }}" class="mt-s" data-confirm="Remove all sample items (videos and testimonials)?"><input type="hidden" name="action" value="clear_samples"><input type="hidden" name="tab" value="reviews"><button class="btn danger sm">Remove all sample items</button></form>{% endif %}
+  <p class="hint mt-s">Only publish testimonials from real clients who have agreed to be quoted.</p></div>
+{% endif %}
+
+<dialog class="modal" id="vidModal"><form method="post" action="{{ url_for('web.items') }}" enctype="multipart/form-data"><input type="hidden" name="id"><input type="hidden" name="kind" value="video"><input type="hidden" name="action" value="save">
+  <div class="m-h"><h2>Transformation video</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field span2"><label>Title (shown on the video)</label><input name="title" required placeholder="e.g. Rich Espresso Global Colour"></div>
+    <div class="field"><label>Category</label><select name="tag">{% for t in tags %}<option>{{ t }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Client first name (optional)</label><input name="client_name" placeholder="e.g. Ananya S."></div>
+    <div class="field full"><label>Short caption / client quote (optional)</label><input name="quote" maxlength="200"></div>
+    <div class="field span2"><label>Upload video (.mp4 / .webm / .mov)</label><input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"><span class="hint">Leave empty to keep the current video when editing.</span></div>
+    <div class="field span2"><label>…or paste a YouTube / video link</label><input name="video_url" placeholder="https://youtube.com/shorts/…  or  https://…/clip.mp4"></div>
+    <div class="field span2"><label>Cover image (optional)</label><input type="file" name="poster_file" accept="image/*"></div>
+    <div class="field"><label>Order (small number = first)</label><input name="sort" type="number" value="100"></div>
+    <div class="field"><label>Status</label><select name="active"><option value="1">Show on website</option><option value="0">Hidden</option></select></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">{{ ui.icon('upload') }} Save video</button></div></form></dialog>
+
+<dialog class="modal" id="quoteModal"><form method="post" action="{{ url_for('web.items') }}"><input type="hidden" name="id"><input type="hidden" name="kind" value="text"><input type="hidden" name="action" value="save"><input type="hidden" name="tab" value="reviews">
+  <div class="m-h"><h2>Client testimonial</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field"><label>Client name</label><input name="client_name" required placeholder="e.g. Riya D."></div><div class="field"><label>Service they had</label><input name="title" placeholder="e.g. Global Colour"></div>
+    <div class="field full"><label>Testimonial</label><textarea name="quote" required maxlength="500"></textarea></div>
+    <div class="field"><label>Rating</label><select name="rating">{% for i in [5,4,3] %}<option value="{{ i }}">{{ '★' * i }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Order</label><input name="sort" type="number" value="100"></div>
+    <div class="field"><label>Status</label><select name="active"><option value="1">Show on website</option><option value="0">Hidden</option></select></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save testimonial</button></div></form></dialog>
+{% endblock %}

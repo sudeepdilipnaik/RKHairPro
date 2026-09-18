@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Accounts</h1><p>Create as many cash, UPI, bank and card accounts as you need – each payment is posted to the account it actually landed in.</p></div>
+  <div class="row"><button class="btn" data-modal="xferModal">{{ ui.icon('sync') }} Transfer</button><button class="btn gold" data-modal="accModal" data-fill-id="" data-fill-name="" data-fill-opening_balance="0">{{ ui.icon('plus') }} New account</button></div></div>
+{% include 'finance/_tabs.html' %}
+<div class="kpi-grid mb">{{ ui.kpi('Total across accounts', total|inr) }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Account</th><th>Type</th><th>Branch</th><th>UPI / bank</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
+{% for a in accs %}<tr><td><b>{{ a.name }}</b>{% if a.notes %}<br><small>{{ a.notes }}</small>{% endif %}</td><td>{{ a.type_label }}</td><td>{{ a.branch.name if a.branch else 'Company' }}</td><td>{{ a.upi_id or a.bank_name or '—' }}</td>
+<td class="num"><b class="{{ 'bad' if bm[a.id] < 0 }}">{{ bm[a.id]|inr }}</b></td><td>{{ ui.badge('Active','ok') if a.active else ui.badge('Closed','') }}</td>
+<td class="nowrap"><a class="btn sm" href="{{ url_for('fin.account_view', aid=a.id) }}">Statement</a>
+ <button class="btn sm" data-modal="accModal" data-fill-id="{{ a.id }}" data-fill-name="{{ a.name }}" data-fill-type="{{ a.type }}" data-fill-opening_balance="{{ a.opening_balance }}" data-fill-upi_id="{{ a.upi_id or '' }}" data-fill-bank_name="{{ a.bank_name or '' }}" data-fill-notes="{{ a.notes or '' }}" data-fill-active="{{ 1 if a.active else 0 }}">Edit</button></td></tr>{% endfor %}
+</tbody></table></div>
+<dialog class="modal" id="accModal"><form method="post" action="{{ url_for('fin.account_save') }}"><input type="hidden" name="id"><div class="m-h"><h2>Account</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field span2"><label>Account name</label><input name="name" required placeholder="e.g. RK Personal UPI, Salon Paytm, HDFC Current"></div>
+    <div class="field"><label>Type</label><select name="type">{% for k, l in types %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+    {{ ui.branch_select('branch_id', None, False, 'Belongs to') }}
+    <div class="field"><label>Opening balance ₹</label><input name="opening_balance" type="number" step="0.01" value="0"></div>
+    <div class="field"><label>UPI ID</label><input name="upi_id"></div><div class="field"><label>Bank name</label><input name="bank_name"></div>
+    <div class="field"><label>Status</label><select name="active"><option value="1">Active</option><option value="0">Closed</option></select></div>
+    <div class="field full"><label>Notes</label><input name="notes" placeholder="What is this account used for?"></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save account</button></div></form></dialog>
+{% set xfer_accounts = accs|selectattr('active')|list %}
+{% include 'finance/_transfer_modal.html' %}
+{% endblock %}

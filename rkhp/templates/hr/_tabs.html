@@ -1,0 +1,10 @@
+<div class="tabs no-print">
+  <a class="{{ 'active' if request.endpoint in ('hr.employees','hr.employee_form','hr.employee_view') }}" href="{{ url_for('hr.employees') }}">{{ ui.icon('users') }} Employees</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.org' }}" href="{{ url_for('hr.org') }}">{{ ui.icon('briefcase') }} Hierarchy</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.attendance' }}" href="{{ url_for('hr.attendance') }}">{{ ui.icon('calendar') }} Attendance</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.kiosk' }}" href="{{ url_for('hr.kiosk') }}">{{ ui.icon('camera') }} Face kiosk</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.leaves' }}" href="{{ url_for('hr.leaves') }}">{{ ui.icon('clock') }} Leaves</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.payroll' }}" href="{{ url_for('hr.payroll') }}">{{ ui.icon('wallet') }} Payroll</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.reimbursements' }}" href="{{ url_for('hr.reimbursements') }}">{{ ui.icon('card') }} Reimbursements</a>
+  <a class="{{ 'active' if request.endpoint == 'hr.announcements' }}" href="{{ url_for('hr.announcements') }}">{{ ui.icon('megaphone') }} Announcements</a>
+</div>

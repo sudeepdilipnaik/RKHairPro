@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Reimbursements</h1><p>When employees spend from their own pocket for the salon, they raise a request from their app. Approve, then pay today or add it to their salary.</p></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Employee</th><th>What for</th><th>Head</th><th class="num">Amount</th><th>Settle</th><th>Receipt</th><th>Status</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.date|dfmt }}</td><td><b>{{ r.employee.name }}</b></td><td>{{ r.description }}</td><td>{{ r.category.name if r.category else '—' }}</td><td class="num"><b>{{ r.amount|inr }}</b></td><td>{{ 'Same day' if r.settle_mode == 'daily' else 'With salary' }}</td>
+<td>{% if r.receipt %}<a href="{{ url_for('hr.files', name=r.receipt) }}" target="_blank">View</a>{% else %}—{% endif %}</td><td>{{ ui.status(r.status) }}</td>
+<td class="nowrap">{% if current_user.is_manager %}
+ {% if r.status == 'pending' %}<form class="inline" method="post" action="{{ url_for('hr.reimb_decide', rid=r.id, act='approve') }}"><button class="btn sm ok">Approve</button></form> <form class="inline" method="post" action="{{ url_for('hr.reimb_decide', rid=r.id, act='reject') }}"><button class="btn sm danger">Reject</button></form>{% endif %}
+ {% if r.status in ('pending','approved') and r.settle_mode == 'daily' %}<form class="inline" method="post" action="{{ url_for('hr.reimb_decide', rid=r.id, act='pay') }}"><input type="hidden" name="mode" value="cash"><button class="btn sm gold">Pay now (cash)</button></form>{% endif %}{% endif %}</td></tr>
+{% else %}<tr><td colspan="9" class="empty">No reimbursement requests.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

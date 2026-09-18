@@ -1,0 +1,18 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="pub-wrap"><div class="card done-card">
+{% if done %}
+  <div class="done-check">{{ ui.icon('check') }}</div><h1 class="gold-text">Thank you{{ ', ' + fb.client.name.split()[0] if fb.client else '' }}!</h1>
+  <p class="muted">Your feedback helps us serve you better.</p>
+  {% if fb.rating and fb.rating >= 4 %}<p>Loved your visit? A Google review means the world to us.</p><a class="btn gold" href="{{ review }}" target="_blank" rel="noopener">{{ ui.icon('star') }} Rate us on Google</a>{% endif %}
+{% else %}
+  <h1 class="gold-text">How was your visit?</h1>
+  <p class="muted">{{ fb.branch.name }} · {{ fb.created_at|dfmt }}{% if fb.employee %} · with {{ fb.employee.name.split('(')[0] }}{% endif %}</p>
+  <form method="post" style="margin-top:14px">
+    <div class="stars-input">{% for i in [5,4,3,2,1] %}<input type="radio" id="s{{ i }}" name="rating" value="{{ i }}" {{ 'checked' if i == 5 }}><label for="s{{ i }}" title="{{ i }} stars">★</label>{% endfor %}</div>
+    <div class="field mt"><label>Tell us more (optional)</label><textarea name="comment" placeholder="What did you love? What could we do better?"></textarea></div>
+    <button class="btn gold block lg mt">Submit feedback</button>
+  </form>
+{% endif %}
+</div></div>
+{% endblock %}

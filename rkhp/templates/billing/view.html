@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Invoice <span class="gold-text">{{ inv.number }}</span></h1><p>{{ inv.branch.name }} · {{ inv.date|dfmt }} · {{ inv.created_by.name if inv.created_by else '' }}</p></div>
+  <div class="row no-print">{{ ui.status(inv.status) }}<button class="btn" onclick="window.print()">{{ ui.icon('printer') }} Print</button><a class="btn" href="{{ url_for('billing.new') }}">{{ ui.icon('plus') }} New bill</a>
+   {% if current_user.is_manager and inv.status != 'void' %}<button class="btn danger" data-modal="voidModal">Void</button>{% endif %}</div></div>
+<div class="grid g-main">
+  <div class="card">
+    <div class="row between mb"><div><b>{{ inv.client.name if inv.client else 'Walk-in guest' }}</b><br><small>{{ inv.client.mobile if inv.client }}</small></div><img src="{{ url_for('static', filename='img/logo.png') }}" style="height:60px"></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Done by</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>
+      {% for i in inv.items %}<tr><td>{{ i.description }} {% if i.kind == 'product' %}<span class="badge">retail</span>{% endif %}</td><td>{{ i.employee.name.split('(')[0] if i.employee else '—' }}</td><td class="num">{{ '%g'|format(i.qty) }}</td><td class="num">{{ i.unit_price|inr }}</td><td class="num">{{ i.amount|inr }}</td></tr>{% endfor %}
+      <tr><td colspan="4" class="num">Subtotal</td><td class="num">{{ inv.subtotal|inr }}</td></tr>
+      {% if inv.discount %}<tr><td colspan="4" class="num">Discount {% if inv.coupon_code %}({{ inv.coupon_code }}){% endif %}</td><td class="num">-{{ inv.discount|inr }}</td></tr>{% endif %}
+      {% if inv.gst_amount %}<tr><td colspan="4" class="num">GST</td><td class="num">{{ inv.gst_amount|inr }}</td></tr>{% endif %}
+      {% for t in inv.tips %}<tr><td colspan="4" class="num">Tip → {{ t.employee.name.split('(')[0] }}</td><td class="num">{{ t.amount|inr }}</td></tr>{% endfor %}
+      <tr class="total"><td colspan="4" class="num">Grand total</td><td class="num">{{ inv.grand_total|inr }}</td></tr></tbody></table></div>
+    {% if inv.notes %}<p class="hint mt-s">{{ inv.notes }}</p>{% endif %}
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><div class="card-h"><h3>Payment</h3></div>
+      {% for (mode, acc), amt in pays.items() %}<div class="stat-row"><span>{{ modes.get(mode, mode) }}<br><small>{{ acc }}</small></span><b>{{ amt|inr }}</b></div>{% else %}<div class="muted">No payment received yet.</div>{% endfor %}
+      <div class="stat-row"><span>Received</span><b class="ok">{{ inv.paid_amount|inr }}</b></div>
+      {% if inv.due > 0.5 and inv.status != 'void' %}<div class="stat-row"><span>Balance due</span><b class="warn">{{ inv.due|inr }}</b></div>
+        <button class="btn gold block mt-s no-print" data-modal="payModal">{{ ui.icon('wallet') }} Collect balance</button>{% endif %}
+    </div>
+    {% if inv.tips %}<div class="card"><div class="card-h"><h3>Tip attribution</h3></div>{% for t in inv.tips %}<div class="stat-row"><span>{{ t.employee.name.split('(')[0] }}</span><b>{{ t.amount|inr }}</b></div>{% endfor %}<p class="hint">Tracked as a liability to the employee – it is not business income.</p></div>{% endif %}
+  </div>
+</div>
+<dialog class="modal" id="payModal"><form method="post" action="{{ url_for('billing.pay', iid=inv.id) }}"><div class="m-h"><h2>Collect balance {{ inv.due|inr }}</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field"><label>Mode</label><select name="mode" id="pm"><option value="upi">UPI</option><option value="cash">Cash</option><option value="card">Card</option></select></div>
+    <div class="field"><label>Account</label><select name="account_id" id="pa"></select></div><div class="field"><label>Amount</label><input name="amount" type="number" step="1" value="{{ inv.due }}"></div></div></div>
+  <div class="m-f"><button class="btn gold">Record payment</button></div></form></dialog>
+<dialog class="modal" id="voidModal"><form method="post" action="{{ url_for('billing.void', iid=inv.id) }}"><div class="m-h"><h2>Void invoice</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="field"><label>Reason</label><input name="reason" required></div><p class="hint">All ledger entries of this invoice are reversed. This is logged in the audit trail.</p></div><div class="m-f"><button class="btn danger">Void invoice</button></div></form></dialog>
+<script>
+const ACC={{ accounts|map(attribute='id')|list|tojson }}, ACCN={{ accounts|map(attribute='name')|list|tojson }}, ACCT={{ accounts|map(attribute='type')|list|tojson }};
+function fill(){const m=document.getElementById('pm'), a=document.getElementById('pa'); if(!m) return; a.innerHTML=ACC.map((id,i)=>ACCT[i]===m.value?`<option value="${id}">${ACCN[i]}</option>`:'').join('')||'<option value="">default</option>';}
+document.addEventListener('DOMContentLoaded',()=>{const m=document.getElementById('pm'); if(m){m.onchange=fill;fill();}});
+</script>
+{% endblock %}

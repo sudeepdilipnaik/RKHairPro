@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Face attendance kiosk</h1><p>Place a tablet at the salon entrance. Each employee looks at the camera – date & time are marked automatically. First scan = check-in, later scan = check-out.</p></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="grid g2">
+  <div class="card kiosk">
+    <div class="cam" id="cam"><video id="video" autoplay playsinline muted></video><canvas id="snap" class="hide"></canvas><div class="frame"></div><div class="scan"></div></div>
+    <div id="camMsg" class="hint mt-s">Starting camera… (allow camera access in the browser)</div>
+    <div class="card flat mt-s" style="text-align:left">
+      <span class="badge warn">DEMO MODE</span> <span class="hint">The face <i>match</i> is simulated: choose who is standing in front of the camera. In production this step is replaced by the face-recognition engine – nothing else changes.</span>
+      <div class="field mt-s"><label>Who is being scanned?</label><select id="who">{% for e in emps %}<option value="{{ e.id }}">{{ e.name }} · {{ e.role_label }}</option>{% endfor %}</select></div>
+    </div>
+    <button class="btn gold lg block mt-s" id="scanBtn">{{ ui.icon('camera') }} Scan face &amp; mark attendance</button>
+    <div id="result" class="mt-s" style="min-height:64px"></div>
+  </div>
+  <div class="card"><div class="card-h"><h2>Today's status</h2></div>
+    <div id="board">{% for e in emps %}{% set a = today.get(e.id) %}<div class="list-item" data-emp="{{ e.id }}">{{ ui.avatar(e) }}<div class="grow"><b>{{ e.name }}</b><br><small>{{ e.role_label }}</small></div>
+      <div class="right"><span class="in">{% if a and a.check_in %}IN {{ a.check_in|tfmt }}{% if a.late_min %} · late {{ a.late_min }}m{% endif %}{% else %}<span class="faint">not in</span>{% endif %}</span><br><small class="out muted">{% if a and a.check_out %}OUT {{ a.check_out|tfmt }}{% endif %}</small></div></div>{% endfor %}</div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const video=document.getElementById('video'), canvas=document.getElementById('snap'), cam=document.getElementById('cam'), msg=document.getElementById('camMsg'), res=document.getElementById('result');
+let stream=null;
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}).then(s=>{stream=s;video.srcObject=s;msg.textContent='Camera ready – look straight into the frame.';}).catch(()=>{msg.textContent='Camera not available – attendance will still be marked (without a photo).';});}
+else msg.textContent='Camera not supported in this browser – attendance will still be marked (without a photo).';
+document.getElementById('scanBtn').onclick=async function(){
+  const btn=this; btn.disabled=true; cam.classList.add('scanning'); res.innerHTML='<span class="muted">Scanning…</span>';
+  let snap=''; try{ if(stream&&video.videoWidth){canvas.width=320; canvas.height=Math.round(320*video.videoHeight/video.videoWidth); canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height); snap=canvas.toDataURL('image/jpeg',.7);} }catch(e){}
+  await new Promise(r=>setTimeout(r,1500));
+  const id=document.getElementById('who').value; const d=await rkPost('{{ url_for("hr.kiosk_scan") }}',{employee_id:id,snapshot:snap});
+  cam.classList.remove('scanning'); btn.disabled=false;
+  if(d.ok){ res.innerHTML='<div class="flash '+(d.late||d.early?'err':'ok')+'" style="justify-content:center;font-weight:700">'+d.message+'</div>';
+    const row=document.querySelector('#board [data-emp="'+id+'"]'); if(row&&d.action==='in'){row.querySelector('.in').innerHTML='<b class="ok">IN just now</b>'} if(row&&d.action==='out'){row.querySelector('.out').textContent='OUT just now'} }
+  else res.innerHTML='<div class="flash err">'+(d.message||'Not recognised')+'</div>';
+};
+</script>{% endblock %}

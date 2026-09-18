@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Appointment <span class="gold-text">{{ a.code }}</span></h1><p>{{ a.branch.name }} · booked {{ a.created_at|dtfmt }} via {{ a.source }}{% if a.created_by %} by {{ a.created_by.name }}{% endif %}</p></div>
+  <div class="row no-print"><a class="btn" href="{{ url_for('appt.board', date=a.start_dt.date().isoformat(), b=a.branch_id) }}">Calendar</a>
+    {% if a.status in ('booked','confirmed','arrived') %}<a class="btn" href="{{ url_for('appt.edit', aid=a.id) }}">{{ ui.icon('edit') }} Modify / reschedule</a>{% endif %}</div></div>
+<div class="grid g-main">
+  <div class="grid">
+    <div class="card"><div class="card-h"><h2>{{ a.start_dt|dfmt('%A, %d %B %Y') }} · {{ a.start_dt|tfmt }} – {{ a.end_dt|tfmt }}</h2>{{ ui.status(a.status) }}</div>
+      <dl class="kv">
+        <dt>Client</dt><dd><a href="{{ url_for('clients.view', cid=a.client_id) }}"><b>{{ a.client.name }}</b></a> · {{ a.client.mobile }}</dd>
+        <dt>Stylist</dt><dd>{{ a.employee.name if a.employee else 'Unassigned' }}</dd>
+        <dt>Duration</dt><dd>{{ a.duration }} minutes</dd>
+        <dt>Notes</dt><dd>{{ a.notes or '—' }}</dd>
+        {% if a.cancel_reason %}<dt>Reason</dt><dd class="bad">{{ a.cancel_reason }}</dd>{% endif %}
+      </dl>
+      <hr class="sep">
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Duration</th><th class="num">Price</th></tr></thead><tbody>
+        {% for l in a.lines %}<tr><td>{{ l.service.name }}</td><td>{{ l.duration }} min</td><td class="num">{{ l.price|inr }}</td></tr>{% endfor %}
+        <tr class="total"><td>Estimated total</td><td></td><td class="num">{{ a.total|inr }}</td></tr></tbody></table></div>
+    </div>
+    <div class="card"><div class="card-h"><h3>Earlier visits of {{ a.client.name.split()[0] }}</h3></div>
+      {% for h in history %}<a class="list-item" href="{{ url_for('appt.view', aid=h.id) }}"><b>{{ h.start_dt|dfmt }}</b><span class="grow">{{ h.service_names }}</span>{{ ui.status(h.status) }}</a>{% else %}<div class="muted">First visit.</div>{% endfor %}</div>
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><div class="card-h"><h3>Manage</h3></div>
+      <div class="grid" style="gap:8px">
+      {% if a.status in ('booked','confirmed') %}
+        <form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}"><input type="hidden" name="status" value="arrived"><button class="btn block">{{ ui.icon('check') }} Mark arrived</button></form>{% endif %}
+      {% if a.status in ('booked','confirmed','arrived') %}
+        <form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}"><input type="hidden" name="status" value="in_service"><button class="btn block">Start service</button></form>{% endif %}
+      {% if a.status in ('booked','confirmed','arrived','in_service') %}
+        <form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}"><input type="hidden" name="status" value="completed"><button class="btn gold block">{{ ui.icon('card') }} Complete &amp; generate bill</button></form>
+        <button class="btn danger block" data-modal="cancelModal">{{ ui.icon('x') }} Cancel appointment</button>
+        <form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}" data-confirm="Mark this client as a no-show?"><input type="hidden" name="status" value="no_show"><button class="btn block">Mark no-show</button></form>{% endif %}
+      {% if a.invoice_id and current_user.has_perm('billing') %}<a class="btn ok block" href="{{ url_for('billing.view', iid=a.invoice_id) }}">View invoice</a>{% endif %}
+      {% if a.status == 'completed' and not a.invoice_id and current_user.has_perm('billing') %}<a class="btn gold block" href="{{ url_for('billing.new', appt=a.id) }}">{{ ui.icon('card') }} Generate bill</a>{% endif %}
+      {% if a.status in ('cancelled','no_show') %}<form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}"><input type="hidden" name="status" value="booked"><button class="btn block">Re-open booking</button></form>{% endif %}
+      </div>
+      <p class="hint mt-s">Cancelling or modifying sends a WhatsApp message to the client automatically.</p>
+    </div>
+    {% if a.client.notes %}<div class="card"><div class="card-h"><h3>Client notes</h3></div>{{ a.client.notes }}</div>{% endif %}
+  </div>
+</div>
+<dialog class="modal" id="cancelModal"><form method="post" action="{{ url_for('appt.set_status', aid=a.id) }}"><input type="hidden" name="status" value="cancelled">
+  <div class="m-h"><h2>Cancel appointment {{ a.code }}</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="field"><label>Reason (shared with the client)</label><input name="reason" placeholder="e.g. Stylist unavailable / client requested"></div>
+    <p class="hint">A WhatsApp cancellation message will be sent to {{ a.client.name }}.</p></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Keep booking</button><button class="btn danger">Cancel appointment</button></div></form></dialog>
+{% endblock %}

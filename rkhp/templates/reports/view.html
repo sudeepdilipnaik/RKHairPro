@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><div class="muted" style="font-size:.8rem"><a href="{{ url_for('rep.index', dept=m.dept) }}">Reports › {{ dept_label }}</a></div><h1>{{ m.title }}</h1><p>{{ m.desc }}</p></div>
+  <div class="row no-print"><a class="btn" href="{{ url_for('rep.csv_', key=m.key, **request.args) }}">{{ ui.icon('download') }} Export CSV</a><button class="btn" onclick="window.print()">{{ ui.icon('printer') }} Print</button></div></div>
+<div class="pills mb no-print">{% for r in same %}<a class="{{ 'active' if r.key == m.key }}" href="{{ url_for('rep.view', key=r.key) }}">{{ r.title }}</a>{% endfor %}</div>
+{% if m.month %}
+<form method="get" class="filters no-print"><div class="field"><label>Month</label><input type="month" name="month" value="{{ ym }}" onchange="this.form.submit()"></div></form>
+{% elif m.period %}{{ ui.period_bar(key, d1, d2) }}{% endif %}
+<div class="row between mb"><b class="gold">{{ label if m.period or m.month else 'As at ' + now().strftime('%d %b %Y') }} · {{ 'All branches' if not scope_branch else scope_branch.name }}</b></div>
+{% if out.kpis %}<div class="kpi-grid mb">{% for lbl, val, ty in out.kpis %}{{ ui.kpi(lbl, ui.cell(val, ty)) }}{% endfor %}</div>{% endif %}
+{% if out.note %}<div class="card flat mb"><span class="muted">ℹ {{ out.note }}</span></div>{% endif %}
+{% if out.chart and out.chart.labels %}<div class="card mb"><div class="card-h"><h3>{{ ui.icon('chart') }} Chart</h3></div>{{ ui.bars(out.chart) }}</div>{% endif %}
+{% if out.wide %}
+<div class="table-wrap"><table class="tbl att"><thead><tr>{% for c in out.columns %}<th>{{ c.t }}</th>{% endfor %}</tr></thead><tbody>
+{% for r in out.rows %}<tr>{% for c in out.columns %}<td>{{ ui.cell(r[loop.index0], c.ty) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+<p class="hint mt-s">P present · L late · H half-day · A absent · W weekly off · V paid leave · U unpaid leave · O holiday</p>
+{% else %}{{ ui.table(out.columns, out.rows, out.totals, out.get('bold', ())) }}{% endif %}
+<p class="hint mt-s">{{ out.rows|length }} row(s)</p>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set hr_ = now().hour %}
+<div class="page-h">
+  <div>
+    <h1>{{ 'Good morning' if hr_ < 12 else ('Good afternoon' if hr_ < 17 else 'Good evening') }}, <span class="gold-text">{{ current_user.name.split('(')[0].split()[0] }}</span></h1>
+    <p>{{ today|dfmt('%A, %d %B %Y') }} · Viewing <b class="gold">{{ 'all branches' if not scope_branch else scope_branch.name }}</b>{% if s_ytd is defined %} · {{ fy }}{% endif %}</p>
+  </div>
+  <div class="row no-print">
+    {% if current_user.has_perm('appointments') %}<a class="btn gold" href="{{ url_for('appt.new') }}">{{ ui.icon('plus') }} New appointment</a>{% endif %}
+    {% if current_user.has_perm('billing') %}<a class="btn" href="{{ url_for('billing.new') }}">{{ ui.icon('card') }} New bill</a>{% endif %}
+    {% if current_user.has_perm('finance') %}<a class="btn" href="{{ url_for('fin.entry', kind='out') }}">{{ ui.icon('wallet') }} Add expense</a><a class="btn" href="{{ url_for('fin.day_close') }}">{{ ui.icon('check') }} Day close</a>{% endif %}
+  </div>
+</div>
+
+{% if stale_demo %}<div class="flash" style="margin-bottom:16px"><span>ℹ️ The sample data was generated a few days ago, so "today" looks quiet. Refresh it anytime from <a href="{{ url_for('sett.index', tab='data') }}"><b>Settings → Demo data</b></a> (takes ~1–2 minutes).</span></div>{% endif %}
+{% if s_day is defined %}
+<div class="kpi-grid mb">
+  {{ ui.kpi("Today's sales", s_day.revenue|inr, s_day.in_total|inr + ' received in total', url_for('fin.index', p='today')) }}
+  {{ ui.kpi("Tips today", s_day.tips_in|inr, s_day.tips_out|inr + ' paid out', url_for('fin.tips', p='today')) }}
+  {{ ui.kpi("Month-to-date sales", s_mtd.revenue|inr, 'Net profit ' + pl_mtd.net_profit|inr, url_for('fin.index', p='mtd')) }}
+  {{ ui.kpi("Year-to-date sales", s_ytd.revenue|inr, 'Net profit ' + pl_ytd.net_profit|inr + ' · ' + pl_ytd.margin|string + '% margin', url_for('fin.index', p='ytd')) }}
+  {{ ui.kpi("Cash in counter", s_day.cash_total|inr, 'Bank ' + s_day.bank_total|inr, url_for('fin.day_close')) }}
+  {{ ui.kpi("UPI + card balance", (s_day.upi_total + s_day.card_total)|inr, 'UPI ' + s_day.upi_total|inr + ' · Card ' + s_day.card_total|inr, url_for('fin.accounts')) }}
+</div>
+{% endif %}
+
+<div class="grid g-main">
+  <div class="grid">
+    {% if appt_groups is defined %}
+    <div class="card">
+      <div class="card-h"><h2>{{ ui.icon('calendar') }} Today's appointments <span class="badge gold">{{ appt_count }}</span></h2><a class="btn sm" href="{{ url_for('appt.board') }}">Open calendar</a></div>
+      {% for emp, list in appt_groups %}
+        <div style="margin-bottom:14px">
+          <div class="row" style="margin-bottom:6px">{% if emp %}{{ ui.avatar(emp) }}<div><b>{{ emp.name }}</b><br><small>{{ emp.role_label }} · {{ list|selectattr('is_active')|list|length }} appointment(s){% if scope_branch is none and list %} · {{ list[0].branch.name }}{% endif %}</small></div>{% else %}<b>Unassigned</b>{% endif %}</div>
+          <div class="table-wrap"><table class="tbl"><tbody>
+            {% for a in list %}<tr onclick="location='{{ url_for('appt.view', aid=a.id) }}'" style="cursor:pointer">
+              <td class="nowrap"><b>{{ a.start_dt|tfmt }}</b></td><td>{{ a.client.name }}<br><small>{{ a.service_names }}</small></td><td>{{ ui.status(a.status) }}</td><td class="num">{{ a.total|inr }}</td></tr>{% endfor %}
+          </tbody></table></div>
+        </div>
+      {% else %}<div class="empty">No appointments today yet.</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if trend is defined %}
+    <div class="card">
+      <div class="card-h"><h2>{{ ui.icon('trend') }} Sales vs expenses – last 14 days</h2><a class="btn sm" href="{{ url_for('rep.view', key='daily_trend') }}">Full report</a></div>
+      {{ ui.bars(trend) }}
+    </div>
+    {% endif %}
+
+    {% if cards is defined and cards|length > 1 %}
+    <div class="card">
+      <div class="card-h"><h2>{{ ui.icon('pin') }} Branch performance</h2><a class="btn sm" href="{{ url_for('rep.view', key='branch_compare') }}">Compare</a></div>
+      <div class="grid g2">
+        {% for c in cards %}<div class="card flat">
+          <div class="card-h" style="margin-bottom:8px"><h3>{{ c.b.name }}</h3><span class="badge {{ 'ok' if c.pct >= 100 else ('warn' if c.pct >= 60 else 'bad') }}">{{ c.pct }}% of target</span></div>
+          <div class="stat-row"><span>Today's sales</span><b>{{ c.today|inr }}</b></div>
+          <div class="stat-row"><span>MTD sales</span><b>{{ c.mtd|inr }}</b></div>
+          <div class="stat-row"><span>MTD net profit</span><b class="{{ 'ok' if c.profit >= 0 else 'bad' }}">{{ c.profit|inr }}</b></div>
+          <div class="stat-row"><span>Appointments today</span><b>{{ c.appts }}</b></div>
+          <div class="progress mt-s {{ 'ok' if c.pct >= 100 }}"><i style="width:{{ [c.pct,100]|min }}%"></i></div>
+          <small class="muted">Monthly target {{ c.b.monthly_target|inr }}</small>
+        </div>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="grid" style="align-content:start">
+    {% if pend is defined and (pend.leaves + pend.reimb + pend.stock + pend.roles) %}
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('approve') }} Needs your approval</h2><a class="btn sm gold" href="{{ url_for('misc.approvals') }}">Review</a></div>
+      {% if pend.leaves %}<div class="stat-row"><span>Leave requests</span><b>{{ pend.leaves }}</b></div>{% endif %}
+      {% if pend.reimb %}<div class="stat-row"><span>Reimbursements</span><b>{{ pend.reimb }}</b></div>{% endif %}
+      {% if pend.stock %}<div class="stat-row"><span>Stock requests</span><b>{{ pend.stock }}</b></div>{% endif %}
+      {% if pend.roles %}<div class="stat-row"><span>Role change requests</span><b>{{ pend.roles }}</b></div>{% endif %}
+    </div>{% endif %}
+
+    {% if low is defined and low %}
+    <div class="card"><div class="card-h"><h2 class="warn">{{ ui.icon('alert') }} Low stock</h2><a class="btn sm" href="{{ url_for('inv.index', low=1) }}">View all</a></div>
+      {% for s in low %}<div class="stat-row"><span>{{ s.item.name }}{% if not scope_branch %}<br><small>{{ s.branch.name }}</small>{% endif %}</span><b class="bad">{{ '%g'|format(s.qty) }} {{ s.item.unit }}</b></div>{% endfor %}
+    </div>{% endif %}
+
+    {% if top is defined and top %}
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('star') }} Top performers · MTD</h2></div>
+      {% for emp, v in top %}<div class="list-item">{{ ui.avatar(emp) }}<div class="grow"><b>{{ emp.name.split('(')[0] }}</b><br><small>{{ emp.role_label }}</small></div><b class="gold">{{ v|inr }}</b></div>{% endfor %}
+    </div>{% endif %}
+
+    {% if dues is defined and dues %}
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('wallet') }} Payments pending from clients</h2></div>
+      {% for i in dues %}<a class="list-item" href="{{ url_for('billing.view', iid=i.id) }}"><div class="grow">{{ i.client.name if i.client else 'Guest' }}<br><small>{{ i.number }} · {{ i.date|dfmt }}</small></div><b class="warn">{{ i.due|inr }}</b></a>{% endfor %}
+    </div>{% endif %}
+
+    {% if announcements %}
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('megaphone') }} Announcements</h2>{% if current_user.has_perm('hr') %}<a class="btn sm" href="{{ url_for('hr.announcements') }}">Post</a>{% endif %}</div>
+      {% for a in announcements %}<div class="list-item" style="align-items:flex-start"><div><b>{% if a.pinned %}📌 {% endif %}{{ a.title }}</b><br><small>{{ a.body[:110] }}</small></div></div>{% endfor %}
+    </div>{% endif %}
+
+    {% if wa is defined and wa %}
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('chat') }} Latest WhatsApp <span class="badge">demo</span></h2><a class="btn sm" href="{{ url_for('misc.outbox') }}">Outbox</a></div>
+      {% for m in wa %}<div class="list-item"><div class="grow"><b>{{ m.to_name }}</b><br><small>{{ m.kind|replace('_',' ')|title }} · {{ m.created_at|dtfmt }}</small></div></div>{% endfor %}
+    </div>{% endif %}
+  </div>
+</div>
+{% endblock %}

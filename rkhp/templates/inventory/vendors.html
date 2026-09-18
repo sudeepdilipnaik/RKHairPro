@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Vendors</h1><p>Suppliers of stock and services – bills, payments (cash / UPI / cheque) and outstanding dues.</p></div><button class="btn gold" data-modal="vModal" data-fill-id="" data-fill-name="">{{ ui.icon('plus') }} Add vendor</button></div>
+{% include 'inventory/_tabs.html' %}
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Vendor</th><th>Category</th><th>Contact</th><th>Terms</th><th class="num">Bills</th><th class="num">Billed</th><th class="num">Outstanding</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td><b>{{ r.v.name }}</b></td><td>{{ r.v.category or '' }}</td><td>{{ r.v.contact or '' }} {{ r.v.mobile or '' }}</td><td>{{ r.v.terms or '' }}</td><td class="num">{{ r.n }}</td><td class="num">{{ r.total|inr }}</td><td class="num"><b class="{{ 'warn' if r.due > 0 }}">{{ r.due|inr }}</b></td>
+<td class="nowrap"><a class="btn sm" href="{{ url_for('inv.vendor_view', vid=r.v.id) }}">Ledger</a> <button class="btn sm" data-modal="vModal" data-fill-id="{{ r.v.id }}" data-fill-name="{{ r.v.name }}" data-fill-category="{{ r.v.category or '' }}" data-fill-contact="{{ r.v.contact or '' }}" data-fill-mobile="{{ r.v.mobile or '' }}" data-fill-gstin="{{ r.v.gstin or '' }}" data-fill-terms="{{ r.v.terms or '' }}" data-fill-address="{{ r.v.address or '' }}">Edit</button></td></tr>{% endfor %}</tbody></table></div>
+<dialog class="modal" id="vModal"><form method="post"><input type="hidden" name="id"><div class="m-h"><h2>Vendor</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field span2"><label>Name</label><input name="name" required></div><div class="field"><label>Category</label><input name="category" placeholder="Colour, disposables…"></div><div class="field"><label>Contact person</label><input name="contact"></div>
+    <div class="field"><label>Mobile</label><input name="mobile"></div><div class="field"><label>GSTIN</label><input name="gstin"></div><div class="field"><label>Payment terms</label><input name="terms" placeholder="Cash / 30 days"></div><div class="field"><label>Address</label><input name="address"></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

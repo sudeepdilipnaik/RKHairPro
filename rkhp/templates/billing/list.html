@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Invoices</h1><p>Every bill with what was paid and how.</p></div><a class="btn gold" href="{{ url_for('billing.new') }}">{{ ui.icon('plus') }} New bill</a></div>
+<form method="get" class="filters">
+  <div class="field"><label>From</label><input type="date" name="from" value="{{ d1.isoformat() }}"></div><div class="field"><label>To</label><input type="date" name="to" value="{{ d2.isoformat() }}"></div>
+  <div class="field"><label>Status</label><select name="status"><option value="">All</option><option value="paid" {{ 'selected' if f.get('status') == 'paid' }}>Paid</option><option value="partial" {{ 'selected' if f.get('status') == 'partial' }}>Part-paid</option><option value="void" {{ 'selected' if f.get('status') == 'void' }}>Void</option></select></div>
+  <div class="field grow"><label>Search</label><input name="q" value="{{ f.get('q','') }}" placeholder="Invoice no., client name or mobile"></div><button class="btn gold">{{ ui.icon('search') }} Filter</button>
+</form>
+<div class="kpi-grid mb">{{ ui.kpi('Invoices', rows|length) }}{{ ui.kpi('Billed (excl. void)', total|inr) }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Date</th><th>Client</th><th>Branch</th><th class="num">Discount</th><th class="num">Tips</th><th class="num">Total</th><th class="num">Paid</th><th>Status</th></tr></thead><tbody>
+{% for i in rows %}<tr onclick="location='{{ url_for('billing.view', iid=i.id) }}'" style="cursor:pointer"><td><b>{{ i.number }}</b></td><td>{{ i.date|dfmt }}</td><td>{{ i.client.name if i.client else 'Walk-in guest' }}</td><td>{{ i.branch.name }}</td>
+<td class="num">{{ i.discount|inr }}</td><td class="num">{{ i.tip_total|inr }}</td><td class="num"><b>{{ i.grand_total|inr }}</b></td><td class="num">{{ i.paid_amount|inr }}</td><td>{{ ui.status(i.status) }}</td></tr>
+{% else %}<tr><td colspan="9" class="empty">No invoices in this range.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

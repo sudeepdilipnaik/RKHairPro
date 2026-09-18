@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Use / deduct stock</h1><p>Products used in services are deducted automatically at billing. Use this for anything else – backbar use, damage, expiry, staff use.</p></div></div>
+{% include 'inventory/_tabs.html' %}
+<form method="post" class="grid" style="max-width:820px">
+<div class="card"><div class="form-grid">{{ ui.branch_select() }}
+  <div class="field"><label>Reason</label><select name="kind"><option value="consumption" {{ 'selected' if kind == 'consumption' }}>Used (backbar / service)</option><option value="wastage" {{ 'selected' if kind == 'wastage' }}>Wastage / damage / expired</option></select></div>
+  <div class="field"><label>Used by (optional)</label><select name="employee_id"><option value="">—</option>{% for e in emps %}<option value="{{ e.id }}">{{ e.name.split('(')[0] }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Date</label><input type="date" name="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></div>
+  <div class="field full"><label>Note</label><input name="note" placeholder="e.g. Spilled bottle / used for bridal trial"></div></div></div>
+<div class="card"><div class="card-h"><h2>Items</h2></div><div id="lines"></div><button type="button" class="btn sm mt-s" id="addLine">{{ ui.icon('plus') }} Add item</button></div>
+<div><button class="btn gold lg">{{ ui.icon('check') }} Deduct from stock</button></div></form>
+{% endblock %}
+{% block scripts %}<script>
+const ITEMS={{ items|map(attribute='id')|list|tojson }}, INM={{ items|map(attribute='name')|list|tojson }}, IUN={{ items|map(attribute='unit')|list|tojson }}, STOCK={{ stock|tojson }};
+const br=document.querySelector('[name=branch_id]');
+function addLine(){const w=document.createElement('div'); w.className='pos-row'; w.style.gridTemplateColumns='2fr 1fr auto';
+ w.innerHTML=`<div class="field"><label>Item</label><select name="item">${ITEMS.map((id,i)=>`<option value="${id}">${INM[i]} (${IUN[i]})</option>`).join('')}</select><span class="hint stk"></span></div><div class="field"><label>Quantity</label><input name="qty" type="number" step="0.01" min="0"></div><button type="button" class="icon-btn">✕</button>`;
+ const s=w.querySelector('select'), h=w.querySelector('.stk'); const upd=()=>{const q=STOCK[(br.value||'')+':'+s.value]; h.textContent=q===undefined?'':'In stock: '+q}; s.onchange=upd; br.addEventListener('change',upd); upd();
+ w.querySelector('button').onclick=()=>w.remove(); document.getElementById('lines').appendChild(w);}
+document.getElementById('addLine').onclick=addLine; addLine();
+</script>{% endblock %}

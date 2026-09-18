@@ -1,0 +1,10 @@
+<div class="tabs no-print">
+  <a class="{{ 'active' if request.endpoint == 'fin.index' }}" href="{{ url_for('fin.index') }}">{{ ui.icon('wallet') }} Summary</a>
+  <a class="{{ 'active' if request.endpoint in ('fin.ledger',) }}" href="{{ url_for('fin.ledger') }}">{{ ui.icon('book') }} Ledger / day book</a>
+  <a class="{{ 'active' if request.endpoint in ('fin.accounts','fin.account_view') }}" href="{{ url_for('fin.accounts') }}">{{ ui.icon('card') }} Accounts</a>
+  <a class="{{ 'active' if request.endpoint == 'fin.tips' }}" href="{{ url_for('fin.tips') }}">{{ ui.icon('gift') }} Tips</a>
+  <a class="{{ 'active' if request.endpoint == 'fin.day_close' }}" href="{{ url_for('fin.day_close') }}">{{ ui.icon('check') }} Day close</a>
+  <a class="{{ 'active' if request.endpoint == 'fin.balance_sheet' }}" href="{{ url_for('fin.balance_sheet') }}">{{ ui.icon('chart') }} Balance sheet</a>
+  <a class="{{ 'active' if request.endpoint == 'fin.heads' }}" href="{{ url_for('fin.heads') }}">{{ ui.icon('tag') }} Heads</a>
+  <a href="{{ url_for('inv.vendors') }}">{{ ui.icon('users') }} Vendors</a>
+</div>

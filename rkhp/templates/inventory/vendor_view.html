@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>{{ v.name }}</h1><p>{{ v.category or '' }} · {{ v.contact or '' }} {{ v.mobile or '' }} · {{ v.terms or '' }}</p></div><div class="row"><a class="btn" href="{{ url_for('inv.vendors') }}">All vendors</a>{% if due > 0 %}<button class="btn gold" data-modal="payModal">{{ ui.icon('wallet') }} Pay vendor</button>{% endif %}</div></div>
+<div class="kpi-grid mb">{{ ui.kpi('Total billed', bills|sum(attribute='total')|inr) }}{{ ui.kpi('Paid', bills|sum(attribute='paid')|inr) }}{{ ui.kpi('Outstanding', due|inr) }}</div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>Bills</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Bill</th><th>Branch</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead><tbody>
+    {% for b in bills %}<tr><td>{{ b.date|dfmt('%d %b') }}</td><td>{{ b.bill_no or b.id }}</td><td>{{ b.branch.name }}</td><td class="num">{{ b.total|inr }}</td><td class="num">{{ b.paid|inr }}</td><td class="num"><b class="{{ 'warn' if b.due > 0 }}">{{ b.due|inr }}</b></td></tr>{% else %}<tr><td colspan="6" class="empty">No bills.</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card"><div class="card-h"><h2>Payments</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Mode</th><th>Account</th><th class="num">Amount</th></tr></thead><tbody>
+    {% for p in pays %}<tr><td>{{ p.date|dfmt('%d %b') }}</td><td>{{ MODE.get(p.mode, p.mode) }}{% if p.reference %}<br><small>{{ p.reference }}</small>{% endif %}</td><td>{{ p.account.name }}</td><td class="num">{{ p.amount|inr }}</td></tr>{% else %}<tr><td colspan="4" class="empty">No payments.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+<dialog class="modal" id="payModal"><form method="post" action="{{ url_for('inv.vendor_pay', vid=v.id) }}"><div class="m-h"><h2>Pay {{ v.name }} · due {{ due|inr }}</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field"><label>Amount ₹</label><input name="amount" type="number" step="1" value="{{ due|int }}" required></div><div class="field"><label>Date</label><input type="date" name="date" value="{{ now().date().isoformat() }}"></div>
+    <div class="field"><label>Mode</label><select name="mode" id="vm"><option value="cash">Cash</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="bank">Bank transfer</option></select></div><div class="field"><label>Account</label><select name="account_id" id="va"></select></div>
+    <div class="field full"><label>Cheque no. / UTR</label><input name="reference"></div></div><p class="hint">Applied to the oldest bills first.</p></div><div class="m-f"><button class="btn gold">Record payment</button></div></form></dialog>
+{% endblock %}
+{% block scripts %}<script>
+const ACC={{ accounts|map(attribute='id')|list|tojson }}, ACCN={{ accounts|map(attribute='name')|list|tojson }}, ACCT={{ accounts|map(attribute='type')|list|tojson }}, T={cash:'cash',upi:'upi',cheque:'bank',bank:'bank'};
+const m=document.getElementById('vm'), a=document.getElementById('va'); function fill(){a.innerHTML=ACC.map((id,i)=>ACCT[i]===T[m.value]?`<option value="${id}">${ACCN[i]}</option>`:'').join('')||'<option value="">default</option>';} m.onchange=fill; fill();
+</script>{% endblock %}

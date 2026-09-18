@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Audit trail</h1><p>Who did what, and when – cancellations, voids, manual attendance, payments and settings. Visible only to the Super Admin.</p></div><a class="btn" href="{{ url_for('ops.index') }}">Back</a></div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>When</th><th>User</th><th>Action</th><th>Entity</th><th>Detail</th></tr></thead><tbody>
+{% for r in rows %}<tr><td class="nowrap">{{ r.created_at|dtfmt }}</td><td>{{ r.user.name.split('(')[0] if r.user else 'System' }}</td><td>{{ ui.badge(r.action) }}</td><td>{{ r.entity }} {{ r.entity_id or '' }}</td><td>{{ r.detail }}</td></tr>{% else %}<tr><td colspan="5" class="empty">Nothing logged yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

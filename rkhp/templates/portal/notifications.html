@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Notifications</h1><p>Salary and tip payments, approvals, low-stock alerts and announcements.</p></div></div>
+<div class="card">{% for n in rows %}<a class="list-item" {% if n.link %}href="{{ n.link }}"{% endif %}><span class="avatar" style="background:{{ 'var(--gold-soft)' if n.id not in unread else 'var(--grad)' }};color:{{ 'var(--gold-2)' if n.id not in unread else '#1a1405' }}">{{ ui.icon({'money':'wallet','stock':'package','approval':'approve','announce':'megaphone','task':'clipboard'}.get(n.kind, 'bell')) }}</span>
+  <div class="grow"><b>{{ n.title }}</b>{% if n.id in unread %} <span class="badge gold">new</span>{% endif %}<br><small>{{ n.body }}</small></div><small class="muted nowrap">{{ n.created_at|dtfmt }}</small></a>{% else %}<div class="empty">You're all caught up.</div>{% endfor %}</div>
+{% endblock %}

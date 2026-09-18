@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Feedback & reviews</h1><p>Every paid bill sends the client a feedback link on WhatsApp. Ratings of 4+ are nudged to leave a Google review.</p></div></div>
+{% include 'marketing/_tabs.html' %}
+<div class="grid g3 mb">
+  <div class="card"><div class="card-h"><h3>By branch</h3></div>{% for n, a, c in by_branch %}<div class="stat-row"><span>{{ n }} <small>({{ c }})</small></span><b class="gold">{{ '%.2f'|format(a) }} ★</b></div>{% endfor %}</div>
+  <div class="card" style="grid-column:span 2"><div class="card-h"><h3>By stylist</h3></div><div class="grid g2" style="gap:0 24px">{% for n, a, c in by_emp %}<div class="stat-row"><span>{{ n.split('(')[0] }} <small>({{ c }})</small></span><b class="gold">{{ '%.2f'|format(a) }} ★</b></div>{% endfor %}</div></div>
+</div>
+<div class="pills mb"><a class="{{ 'active' if not low }}" href="?">All</a><a class="{{ 'active' if low }}" href="?low=1">Needs attention (≤ 3★)</a></div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Client</th><th>Branch</th><th>Stylist</th><th>Rating</th><th>Comment</th><th>Follow-up</th></tr></thead><tbody>
+{% for f in rows %}<tr><td>{{ f.submitted_at|dfmt('%d %b') }}</td><td>{{ f.client.name if f.client }}</td><td>{{ f.branch.name }}</td><td>{{ f.employee.name.split('(')[0] if f.employee else '—' }}</td><td>{{ ui.stars(f.rating) }}</td><td>{{ f.comment or '' }}</td>
+<td>{% if f.status == 'resolved' %}<span class="badge ok">Resolved</span><br><small>{{ f.follow_up_note or '' }}</small>{% elif f.rating <= 3 %}<button class="btn sm" data-modal="fbModal" data-fill-id="{{ f.id }}">Mark followed up</button>{% endif %}</td></tr>{% else %}<tr><td colspan="7" class="empty">No feedback yet.</td></tr>{% endfor %}</tbody></table></div>
+<dialog class="modal" id="fbModal"><form method="post"><input type="hidden" name="id"><div class="m-h"><h2>Follow-up note</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div><div class="m-b"><div class="field"><label>What did you do?</label><input name="note" placeholder="Called the client, offered a free touch-up"></div></div><div class="m-f"><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

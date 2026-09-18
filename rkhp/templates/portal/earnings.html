@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Earnings & tips</h1><p>Your salary, {{ '%g'|format(current_user.commission_pct) }}% incentive on your service business, tips and payslips.</p></div></div>
+<div class="kpi-grid mb">{{ ui.kpi('Base salary', current_user.salary|inr, plain=True) }}{{ ui.kpi('Incentive this month (so far)', inc|inr, 'on ' + rev|inr + ' service business') }}{{ ui.kpi('Tip balance with management', tips_bal|inr, 'paid ' + ('every evening' if current_user.tip_mode == 'daily' else 'with salary')) }}
+  {{ ui.kpi('Estimated pay this month', cur.total_payable|inr, 'after deductions ' + cur.deduction_amt|inr, plain=True) }}</div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('gift') }} Recent tips</h2></div>
+    {% for d, amt, no in tip_rows %}<div class="list-item"><div class="grow">{{ d|dfmt }}<br><small>{{ no }}</small></div><b class="gold">{{ amt|inr }}</b></div>{% else %}<div class="empty">No tips yet.</div>{% endfor %}</div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><div class="card-h"><h2>Tip payouts received</h2></div>{% for t in payouts %}<div class="list-item"><div class="grow">{{ t.date|dfmt }}<br><small>{{ t.mode|title }} · {{ t.notes or '' }}</small></div><b class="ok">{{ t.amount|inr }}</b></div>{% else %}<div class="empty">No payouts yet.</div>{% endfor %}</div>
+    <div class="card"><div class="card-h"><h2>{{ ui.icon('wallet') }} Payslips</h2></div>{% for p in slips %}<a class="list-item" href="{{ url_for('hr.payslip', pid=p.id) }}"><div class="grow"><b>{{ p.month }}</b><br><small>{{ 'Paid ' + p.paid_on|dfmt if p.status == 'paid' else 'Pending' }}</small></div><b>{{ p.total_payable|inr }}</b></a>{% else %}<div class="empty">No payslips yet.</div>{% endfor %}</div>
+  </div>
+</div>
+{% endblock %}

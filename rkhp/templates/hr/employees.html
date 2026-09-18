@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Employees</h1><p>Add, modify and manage everyone who works at RK Hair Pro. Login = mobile number.</p></div><a class="btn gold" href="{{ url_for('hr.employee_form') }}">{{ ui.icon('plus') }} Add employee</a></div>
+{% include 'hr/_tabs.html' %}
+<div class="pills mb"><a class="{{ 'active' if show == 'active' }}" href="?show=active">Active</a><a class="{{ 'active' if show == 'inactive' }}" href="?show=inactive">Ex-employees</a><a class="{{ 'active' if show == 'all' }}" href="?show=all">All</a></div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Role</th><th>Branch</th><th>Weekly off</th><th>Appointments</th><th class="num">Salary</th><th>App access</th><th></th></tr></thead><tbody>
+{% for e in rows %}<tr onclick="location='{{ url_for('hr.employee_view', eid=e.id) }}'" style="cursor:pointer"><td><div class="row" style="flex-wrap:nowrap">{{ ui.avatar(e) }}<div><b>{{ e.name }}</b><br><small>{{ e.mobile }} · {{ e.designation or '' }}</small></div></div></td>
+<td>{{ ui.badge(e.role_label, 'gold' if e.role in ('super_admin','branch_admin') else '') }}</td><td>{{ e.home_branch.name if e.home_branch else '—' }}</td>
+<td>{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][e.weekly_off] }}</td><td>{{ ui.badge('Takes bookings','ok') if e.takes_appointments else '—' }}</td><td class="num">{{ e.salary|inr if e.role != 'super_admin' else 'Owner' }}</td>
+<td>{% if not e.active %}{{ ui.badge('Ex-employee','') }}{% elif e.login_blocked %}{{ ui.badge('Blocked','bad') }}{% else %}{{ ui.badge('Allowed','ok') }}{% endif %}</td><td><a class="btn sm" href="{{ url_for('hr.employee_view', eid=e.id) }}">Open</a></td></tr>
+{% else %}<tr><td colspan="8" class="empty">No employees.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

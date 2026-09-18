@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Services & pricing</h1><p>The menu shown on the website and used at billing. Each service can auto-deduct products from stock.</p></div>
+  <div class="row">{% if current_user.is_manager %}<button class="btn" data-modal="catModal">{{ ui.icon('plus') }} Category</button><button class="btn gold" data-modal="svcModal" data-fill-id="">{{ ui.icon('plus') }} Add service</button>{% endif %}</div></div>
+{% for c in cats %}{% set list = svcs|selectattr('category_id','equalto',c.id)|list %}
+<div class="card mb"><div class="card-h"><h2>{{ ui.icon('scissors') }} {{ c.name }} <span class="badge">{{ list|length }}</span></h2></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Service</th><th>For</th><th>Duration</th><th class="num">Price</th><th>Auto-deducted stock</th><th>Status</th><th></th></tr></thead><tbody>
+    {% for s in list %}<tr>
+      <td><b>{{ s.name }}</b></td><td>{{ s.gender }}</td><td>{{ s.duration }} min</td><td class="num">{{ s.price|inr }}</td>
+      <td>{% for r in recipes.get(s.id, []) %}<span class="badge">{{ r.item.name.split('(')[0] }} · {{ '%g'|format(r.qty) }} {{ r.item.unit }}</span> {% else %}<span class="faint">—</span>{% endfor %}</td>
+      <td>{{ ui.badge('Active','ok') if s.active else ui.badge('Hidden','') }}</td>
+      <td class="nowrap">{% if current_user.is_manager %}<button class="btn sm" data-modal="svcModal" data-fill-id="{{ s.id }}" data-fill-name="{{ s.name }}" data-fill-category_id="{{ s.category_id }}" data-fill-gender="{{ s.gender }}" data-fill-price="{{ s.price|int }}" data-fill-duration="{{ s.duration }}" data-fill-active="{{ 1 if s.active else 0 }}" data-fill-description="{{ s.description or '' }}">Edit</button>
+        <button class="btn sm" data-modal="recipeModal" data-fill-service_id="{{ s.id }}" data-out-title="{{ s.name }}">Stock use</button>{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div></div>{% endfor %}
+
+<dialog class="modal" id="catModal"><form method="post"><input type="hidden" name="action" value="category"><div class="m-h"><h2>New category</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="field"><label>Name</label><input name="name" required></div></div><div class="m-f"><button class="btn gold">Add</button></div></form></dialog>
+
+<dialog class="modal" id="svcModal"><form method="post"><input type="hidden" name="id"><input type="hidden" name="action" value="save">
+  <div class="m-h"><h2>Service</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field span2"><label>Name</label><input name="name" required></div>
+    <div class="field"><label>Category</label><select name="category_id">{% for c in cats %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>For</label><select name="gender"><option>Unisex</option><option>Men</option><option>Women</option></select></div>
+    <div class="field"><label>Price (₹)</label><input name="price" type="number" min="0" step="1" required></div>
+    <div class="field"><label>Duration (minutes)</label><input name="duration" type="number" min="15" step="15" value="30" required></div>
+    <div class="field"><label>Visible on booking</label><select name="active"><option value="1">Active</option><option value="0">Hidden</option></select></div>
+    <div class="field full"><label>Description</label><input name="description"></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold" onclick="var f=this.form;if(!f.id.value){f.action.value='add'}">Save</button></div></form></dialog>
+
+<dialog class="modal wide" id="recipeModal"><div class="m-h"><h2>Stock auto-deducted when this service is billed</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><form method="post" class="row" style="align-items:flex-end"><input type="hidden" name="action" value="recipe"><input type="hidden" name="service_id">
+    <div class="field grow"><label>Item</label><select name="item_id">{% for i in items %}<option value="{{ i.id }}">{{ i.name }} ({{ i.unit }})</option>{% endfor %}</select></div>
+    <div class="field" style="width:120px"><label>Quantity</label><input name="qty" type="number" step="0.01" value="1"></div><button class="btn gold">Add</button></form>
+    <hr class="sep"><p class="hint">Current recipes are shown against each service in the table. To remove one:</p>
+    {% for sid, lst in recipes.items() %}{% for r in lst %}<form method="post" class="inline" data-confirm="Remove this recipe line?"><input type="hidden" name="action" value="recipe_del"><input type="hidden" name="id" value="{{ r.id }}"><button class="badge" style="cursor:pointer">{{ r.service.name }} → {{ r.item.name.split('(')[0] }} ✕</button></form> {% endfor %}{% endfor %}
+  </div></dialog>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Tips</h1><p>{{ label }} · tips are the employee's money – tracked separately from business income.</p></div>
+  <form method="post" action="{{ url_for('fin.tips_pay_all') }}" data-confirm="Pay the full tip balance in cash to every employee on 'End of day' payout?" class="no-print"><input type="hidden" name="mode" value="cash"><button class="btn gold">{{ ui.icon('check') }} End-of-day: pay all daily-payout employees</button></form></div>
+{% include 'finance/_tabs.html' %}
+{{ ui.period_bar(key, d1, d2) }}
+<div class="kpi-grid mb">{{ ui.kpi('Tips earned', total_earned|inr) }}{{ ui.kpi('Tips paid out', total_paid|inr) }}{{ ui.kpi('Still to pay (balance)', total_due|inr, 'held for employees') }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Payout mode</th><th class="num">Opening balance</th><th class="num">Earned</th><th class="num">Paid</th><th class="num">Balance due</th><th></th></tr></thead><tbody>
+{% for r in T %}<tr><td><div class="row" style="flex-wrap:nowrap">{{ ui.avatar(r.emp) }}<div><b>{{ r.emp.name.split('(')[0] }}</b><br><small>{{ r.emp.role_label }} · {{ r.emp.branch.name if r.emp.branch else '' }}</small></div></div></td>
+<td>{% if r.emp.tip_mode == 'daily' %}{{ ui.badge('End of day','ok') }}{% else %}{{ ui.badge('Added to salary','gold') }}{% endif %}</td>
+<td class="num">{{ r.opening|inr }}</td><td class="num">{{ r.earned|inr }}</td><td class="num">{{ r.paid|inr }}</td><td class="num"><b class="{{ 'warn' if r.closing > 0 }}">{{ r.closing|inr }}</b></td>
+<td>{% if r.closing > 0 %}<button class="btn sm gold" data-modal="tipModal" data-fill-employee_id="{{ r.emp.id }}" data-fill-amount="{{ r.closing|int if r.closing == r.closing|int else r.closing }}" data-out-who="{{ r.emp.name.split('(')[0] }}" data-out-bal="{{ r.closing|inr }}">Pay tips</button>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="empty">No tip activity in this period.</td></tr>{% endfor %}</tbody></table></div>
+<p class="hint mt-s">Employees marked <b>Added to salary</b> keep accumulating tips; the balance is paid together with their monthly salary (HR → Payroll). You can still pay any part of it earlier – full or partial – with the button above. Every payout sends a WhatsApp message to the employee.</p>
+<dialog class="modal" id="tipModal"><form method="post" action="{{ url_for('fin.tips_pay') }}"><input type="hidden" name="employee_id">
+  <div class="m-h"><h2>Pay tips to <span class="gold" data-out="who"></span></h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><p>Outstanding tip balance: <b class="warn" data-out="bal"></b></p><div class="form-grid">
+    <div class="field"><label>Amount to pay ₹ (full or partial)</label><input name="amount" type="number" min="1" step="1" required></div>
+    <div class="field"><label>Paid via</label><select name="mode" id="tmode"><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank">Bank transfer</option></select></div>
+    <div class="field full"><label>Account</label><select name="account_id" id="tacct"></select></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Pay & notify on WhatsApp</button></div></form></dialog>
+{% endblock %}
+{% block scripts %}<script>
+const ACC={{ accounts|map(attribute='id')|list|tojson }}, ACCN={{ accounts|map(attribute='name')|list|tojson }}, ACCT={{ accounts|map(attribute='type')|list|tojson }};
+const tm=document.getElementById('tmode'), ta=document.getElementById('tacct');
+function fill(){ta.innerHTML=ACC.map((id,i)=>ACCT[i]===tm.value?`<option value="${id}">${ACCN[i]}</option>`:'').join('')||'<option value="">default</option>';}
+tm.onchange=fill; fill();
+</script>{% endblock %}

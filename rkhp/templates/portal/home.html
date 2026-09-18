@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div class="row">{{ ui.avatar(current_user, 'lg') }}<div><h1>Hi, <span class="gold-text">{{ current_user.name.split('(')[0].split()[0] }}</span></h1><p>{{ today|dfmt('%A, %d %B') }} · {{ current_user.role_label }}{% if current_user.branch %} · {{ current_user.branch.name }}{% endif %}</p></div></div></div>
+<div class="card mb"><div class="card-h"><h2>{{ ui.icon('clock') }} Today's attendance</h2></div>
+  {% if att and att.check_in %}<div class="row"><span class="badge ok">Checked in {{ att.check_in|tfmt }}</span>{% if att.late_min %}<span class="badge warn">Late by {{ att.late_min }} min</span>{% endif %}{% if att.check_out %}<span class="badge info">Checked out {{ att.check_out|tfmt }}</span>{% endif %}<span class="muted">Marked by {{ att.method }}</span></div>
+  {% elif today.weekday() == current_user.weekly_off %}<span class="badge">Your weekly off today 🌴</span>
+  {% else %}<span class="badge warn">Not checked in yet</span> <span class="hint">Scan your face at the salon kiosk to mark attendance.</span>{% endif %}</div>
+<div class="kpi-grid mb">
+  {{ ui.kpi("My business today", rev_day|inr, 'services performed', plain=True) }}{{ ui.kpi('My business this month', rev_mtd|inr, ('target ' + current_user.monthly_target|inr) if current_user.monthly_target else '', plain=True) }}
+  {{ ui.kpi('Incentive earned (MTD)', inc|inr, '%g'|format(current_user.commission_pct) + '% of my service business', href=url_for('me.earnings')) }}
+  {{ ui.kpi('Tips today', tips_today|inr, 'balance with me ' + tips_bal|inr, href=url_for('me.earnings')) }}
+</div>
+<div class="card mb"><div class="card-h"><h2>{{ ui.icon('chart') }} My performance</h2><span class="hint">review yourself daily, monthly and yearly</span></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Period</th><th class="num">Clients served</th><th class="num">My service business</th><th class="num">Avg per client</th><th class="num">Tips</th><th class="num">Incentive ({{ '%g'|format(current_user.commission_pct) }}%)</th><th class="num">Client rating</th></tr></thead><tbody>
+  {% for p in perf %}<tr><td><b>{{ p.label }}</b></td><td class="num">{{ p.bills }}</td><td class="num">{{ p.rev|inr }}</td><td class="num">{{ p.avg|inr }}</td><td class="num">{{ p.tips|inr }}</td><td class="num ok">{{ p.inc|inr }}</td><td class="num">{{ ('%.1f ★'|format(p.rating)) if p.rating else '—' }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if current_user.monthly_target %}{% set pct = (rev_mtd / current_user.monthly_target * 100)|round|int %}<div class="card mb"><div class="row between"><b>Monthly target</b><b class="{{ 'ok' if pct >= 100 }}">{{ pct }}%</b></div><div class="progress mt-s {{ 'ok' if pct >= 100 }}"><i style="width:{{ [pct,100]|min }}%"></i></div></div>{% endif %}
+<div class="grid g2">
+  {% if current_user.takes_appointments or current_user.has_perm('appointments') %}
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('calendar') }} My appointments today</h2></div>
+    {% for a in my_appts %}<div class="list-item"><b class="nowrap">{{ a.start_dt|tfmt }}</b><div class="grow">{{ a.client.name }}<br><small>{{ a.service_names }}</small></div>{{ ui.status(a.status) }}</div>{% else %}<div class="empty">No appointments today.</div>{% endfor %}
+    {% if later %}<hr class="sep"><div class="lbl">Coming up</div>{% for a in later %}<div class="list-item"><div class="grow"><b>{{ a.start_dt|dfmt('%a %d %b') }} · {{ a.start_dt|tfmt }}</b><br><small>{{ a.client.name }} – {{ a.service_names }}</small></div></div>{% endfor %}{% endif %}</div>{% endif %}
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('users') }} My month</h2><a class="btn sm" href="{{ url_for('me.attendance') }}">Attendance</a></div>
+    <div class="stat-row"><span>Present days</span><b>{{ s.present }}</b></div><div class="stat-row"><span>Late marks</span><b class="{{ 'warn' if s.late }}">{{ s.late }}</b></div><div class="stat-row"><span>Early exits</span><b>{{ s.early }}</b></div>
+    <div class="stat-row"><span>Half days</span><b>{{ s.half }}</b></div><div class="stat-row"><span>Absent</span><b class="{{ 'bad' if s.absent }}">{{ s.absent }}</b></div>
+    <p class="hint mt-s">3 late marks = ½ day salary deduction. 1 paid leave per month.</p></div>
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('megaphone') }} From the management</h2><a class="btn sm" href="{{ url_for('me.announcements') }}">All</a></div>
+    {% for a in news %}<div class="list-item" style="align-items:flex-start"><div><b>{% if a.pinned %}📌 {% endif %}{{ a.title }}</b><br><small>{{ a.body[:140] }}</small></div></div>{% else %}<div class="empty">No announcements.</div>{% endfor %}</div>
+  <div class="card"><div class="card-h"><h2>Quick actions</h2></div><div class="grid" style="gap:8px"><a class="btn block" href="{{ url_for('me.leave') }}">{{ ui.icon('calendar') }} Apply for leave</a><a class="btn block" href="{{ url_for('me.reimb') }}">{{ ui.icon('card') }} Raise reimbursement</a><a class="btn block" href="{{ url_for('me.earnings') }}">{{ ui.icon('wallet') }} My earnings & payslips</a><button class="btn block" data-modal="pwModal">{{ ui.icon('lock') }} Change password</button></div></div>
+</div>
+<dialog class="modal" id="pwModal"><form method="post" action="{{ url_for('me.password') }}"><div class="m-h"><h2>Change password</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div><div class="m-b"><div class="form-grid"><div class="field"><label>Current password</label><input type="password" name="old" required></div><div class="field"><label>New password</label><input type="password" name="new" required minlength="4"></div></div></div><div class="m-f"><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

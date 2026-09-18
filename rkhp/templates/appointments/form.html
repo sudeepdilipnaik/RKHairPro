@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set editing = a is not none %}
+<div class="page-h"><div><h1>{{ 'Modify appointment ' + a.code if editing else 'New appointment' }}</h1>
+  <p>{% if editing %}Any change is sent to the client on WhatsApp automatically.{% else %}Offline booking – the client gets a WhatsApp confirmation instantly.{% endif %}</p></div>
+  <a class="btn" href="{{ url_for('appt.view', aid=a.id) if editing else url_for('appt.board') }}">Back</a></div>
+<form method="post" id="apptform" autocomplete="off">
+<div class="book-grid" style="padding-top:0;grid-template-columns:minmax(0,1fr) 330px">
+  <div class="grid">
+    <div class="card"><div class="sec-h"><span class="n">1</span><h2>{{ 'Client' if editing else 'Client details' }}</h2></div>
+      {% if editing %}<div class="row">{{ a.client.name }} · {{ a.client.mobile }} · <b>{{ a.branch.name }}</b></div><input type="hidden" name="branch_id" value="{{ a.branch_id }}">
+      {% else %}
+      <div class="form-grid">
+        {{ ui.branch_select('branch_id', pre.branch) }}
+        <div class="field"><label>Mobile (WhatsApp)</label><input name="mobile" type="tel" required maxlength="14" value="{{ f.get('mobile','') }}" placeholder="10-digit number"><span class="hint" id="client-hint"></span></div>
+        <div class="field"><label>Full name</label><input name="name" required value="{{ f.get('name','') }}"></div>
+        <div class="field"><label>Booking source</label><select name="source"><option value="phone">Phone call</option><option value="walk-in">Walk-in</option><option value="offline">Other offline</option><option value="instagram">Instagram DM</option><option value="online">WhatsApp / online</option></select></div>
+        <div class="field"><label>Gender (optional)</label><select name="gender"><option value="">—</option><option>Female</option><option>Male</option></select></div>
+      </div>{% endif %}
+    </div>
+    <div class="card"><div class="sec-h"><span class="n">2</span><h2>Services</h2></div>
+      {% set chosen = a.lines|map(attribute='service_id')|list if editing else f.getlist('services')|map('int')|list %}
+      {% for c in cats %}{% if svcs[c.id] %}<div class="svc-cat"><div class="t">{{ c.name }}</div><div class="svc-opts">
+        {% for s in svcs[c.id] %}<label class="svc-opt"><input type="checkbox" name="services" value="{{ s.id }}" data-price="{{ s.price }}" data-dur="{{ s.duration }}" data-name="{{ s.name }}" {{ 'checked' if s.id in chosen }}>
+          <span class="meta">{{ s.name }}<small>{{ s.gender }} · {{ s.duration }} min</small></span><b class="gold">{{ s.price|inr }}</b></label>{% endfor %}</div></div>{% endif %}{% endfor %}
+    </div>
+    <div class="card"><div class="sec-h"><span class="n">3</span><h2>Date, stylist & time</h2></div>
+      <div class="form-grid">
+        <div class="field"><label>Date</label><input type="date" name="date" min="{{ now().date().isoformat() }}" required value="{{ a.start_dt.date().isoformat() if editing else pre.date }}"></div>
+        <div class="field"><label>Stylist</label><select name="employee_id" data-selected="{{ a.employee_id if editing else (pre.employee or '') }}"><option value="">Any available stylist</option></select></div>
+        <div class="field"><label>Time slot (drop-down)</label><select name="time" required data-selected="{{ a.start_dt.strftime('%H:%M') if editing else (pre.time or '') }}"><option value="">Choose services and date first</option></select></div>
+        <div class="field full"><label>Notes</label><textarea name="notes">{{ a.notes if editing else f.get('notes','') }}</textarea></div>
+      </div>
+      <div class="notice" id="slot-msg"></div>
+      {% if not current_user.branch_id and not editing %}<p class="hint">As Super Admin you can book for any branch, subject to availability.</p>{% endif %}
+    </div>
+  </div>
+  <aside class="card sticky" id="sum-box"><h2 style="margin-bottom:10px">Summary</h2><div data-s="list"></div><hr class="sep">
+    <div class="stat-row"><span>Duration</span><b data-s="dur">—</b></div><div class="stat-row"><span>Estimated total</span><b class="gold" data-s="total" style="font-size:1.2rem">₹0</b></div>
+    <button class="btn gold block lg mt-s">{{ ui.icon('check') }} {{ 'Save changes & notify client' if editing else 'Book & send WhatsApp' }}</button></aside>
+</div></form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+<script>initBooking({form:'apptform', public:false, lookup:{{ 'false' if editing else 'true' }}, exclude:{{ a.id if editing else 'null' }}});</script>{% endblock %}

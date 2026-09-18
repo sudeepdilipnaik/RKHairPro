@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Reimbursements</h1><p>Spent your own money for the salon? Raise a request – it will be paid the same day or added to your salary.</p></div></div>
+<div class="grid g-main">
+  <div class="card"><div class="card-h"><h2>My requests</h2></div>
+    {% for r in rows %}<div class="list-item"><div class="grow"><b>{{ r.amount|inr }}</b> · {{ r.description }}<br><small>{{ r.date|dfmt }} · {{ 'same day' if r.settle_mode == 'daily' else 'with salary' }}</small></div>{{ ui.status(r.status) }}</div>{% else %}<div class="empty">No requests yet.</div>{% endfor %}</div>
+  <form method="post" enctype="multipart/form-data" class="card" style="align-self:start"><div class="card-h"><h2>New request</h2></div><div class="grid" style="gap:12px">
+    <div class="field"><label>Amount ₹</label><input name="amount" type="number" min="1" step="1" required></div><div class="field"><label>What was it for?</label><input name="description" required placeholder="e.g. Auto fare for stock pickup"></div>
+    <div class="field"><label>Category</label><select name="category_id"><option value="">—</option>{% for h in heads %}<option value="{{ h.id }}">{{ h.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Date</label><input type="date" name="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></div>
+    <div class="field"><label>Pay me</label><select name="settle_mode"><option value="daily">Today (as soon as approved)</option><option value="salary">With my salary</option></select></div>
+    <div class="field"><label>Bill / receipt photo</label><input type="file" name="receipt" accept=".jpg,.jpeg,.png,.pdf"></div><button class="btn gold">Submit request</button></div></form>
+</div>
+{% endblock %}

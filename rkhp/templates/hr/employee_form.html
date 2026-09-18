@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set sup = current_user.is_super %}
+<div class="page-h"><div><h1>{{ 'Edit ' + e.name if e else 'Add employee' }}</h1><p>KYC, salary, weekly off, shift and app access. {% if not sup %}Role, salary and permissions can only be changed by the Super Admin.{% endif %}</p></div><a class="btn" href="{{ url_for('hr.employee_view', eid=e.id) if e else url_for('hr.employees') }}">Cancel</a></div>
+<form method="post" enctype="multipart/form-data" class="grid">
+<div class="card"><div class="card-h"><h2>{{ ui.icon('user') }} Basic details</h2></div><div class="form-grid">
+  <div class="field"><label>Full name</label><input name="name" required value="{{ e.name if e else f.get('name','') }}"></div>
+  <div class="field"><label>Mobile (login ID)</label><input name="mobile" type="tel" required maxlength="14" value="{{ e.mobile if e else f.get('mobile','') }}"></div>
+  {% if not e %}<div class="field"><label>Password (any – can be reset later)</label><input name="password" value="Gold@123"></div>{% endif %}
+  <div class="field"><label>Designation / title</label><input name="designation" value="{{ e.designation if e and e.designation else '' }}" placeholder="e.g. Senior Stylist"></div>
+  {% if sup %}<div class="field"><label>Role in hierarchy</label><select name="role">{% for k, l in roles %}<option value="{{ k }}" {{ 'selected' if (e.role if e else 'stylist') == k }}>{{ l }}</option>{% endfor %}</select></div>{% endif %}
+  {{ ui.branch_select('branch_id', e.branch_id if e else None) }}
+  <div class="field"><label>Works at (home branch)</label><select name="home_branch_id">{% for b in branches %}<option value="{{ b.id }}" {{ 'selected' if e and e.home_branch_id == b.id }}>{{ b.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Reports to</label><select name="reports_to_id"><option value="">—</option>{% for m in mgrs %}<option value="{{ m.id }}" {{ 'selected' if e and e.reports_to_id == m.id }}>{{ m.name.split('(')[0] }} · {{ m.role_label }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Date of birth</label><input name="dob" type="date" value="{{ e.dob.isoformat() if e and e.dob }}"></div>
+  <div class="field"><label>Joined on</label><input name="joined_on" type="date" value="{{ e.joined_on.isoformat() if e and e.joined_on else now().date().isoformat() }}"></div>
+  <div class="field"><label>Email</label><input name="email" type="email" value="{{ e.email if e and e.email else '' }}"></div>
+  <div class="field span2"><label>Address</label><input name="address" value="{{ e.address if e and e.address else '' }}"></div>
+</div></div>
+
+<div class="card"><div class="card-h"><h2>{{ ui.icon('shield') }} KYC & documents</h2></div><div class="form-grid">
+  <div class="field"><label>Aadhaar number</label><input name="aadhaar" value="{{ e.aadhaar if e and e.aadhaar else '' }}"></div><div class="field"><label>PAN</label><input name="pan" value="{{ e.pan if e and e.pan else '' }}"></div>
+  <div class="field"><label>Emergency contact name</label><input name="emergency_name" value="{{ e.emergency_name if e and e.emergency_name else '' }}"></div><div class="field"><label>Emergency contact phone</label><input name="emergency_phone" value="{{ e.emergency_phone if e and e.emergency_phone else '' }}"></div>
+  <div class="field"><label>Bank name</label><input name="bank_name" value="{{ e.bank_name if e and e.bank_name else '' }}"></div><div class="field"><label>Account number</label><input name="bank_account" value="{{ e.bank_account if e and e.bank_account else '' }}"></div>
+  <div class="field"><label>IFSC</label><input name="ifsc" value="{{ e.ifsc if e and e.ifsc else '' }}"></div><div class="field"><label>UPI ID (for salary / tips)</label><input name="upi_id" value="{{ e.upi_id if e and e.upi_id else '' }}"></div>
+  <div class="field"><label>Aadhaar copy {% if e and e.aadhaar_doc %}<a href="{{ url_for('hr.files', name=e.aadhaar_doc) }}" target="_blank">(view current)</a>{% endif %}</label><input type="file" name="aadhaar_doc" accept=".jpg,.jpeg,.png,.pdf"></div>
+  <div class="field"><label>PAN copy {% if e and e.pan_doc %}<a href="{{ url_for('hr.files', name=e.pan_doc) }}" target="_blank">(view current)</a>{% endif %}</label><input type="file" name="pan_doc" accept=".jpg,.jpeg,.png,.pdf"></div>
+  <div class="field"><label>Profile photo</label><input type="file" name="photo_file" accept=".jpg,.jpeg,.png"></div>
+  <div class="field"><label>Face photo for attendance (enrolment)</label><input type="file" name="face_file" accept=".jpg,.jpeg,.png"></div>
+</div></div>
+
+<div class="card"><div class="card-h"><h2>{{ ui.icon('clock') }} Work, salary & tips</h2></div><div class="form-grid">
+  <div class="field"><label>Weekly off</label><select name="weekly_off">{% for d in weekdays %}<option value="{{ loop.index0 }}" {{ 'selected' if (e.weekly_off if e else 0) == loop.index0 }}>{{ d }}</option>{% endfor %}</select></div>
+  <div class="field"><label>Shift start</label><input type="time" name="shift_start" value="{{ e.shift_start if e else '10:00' }}"></div><div class="field"><label>Shift end</label><input type="time" name="shift_end" value="{{ e.shift_end if e else '21:00' }}"></div>
+  <div class="field"><label>Tips are paid</label><select name="tip_mode"><option value="daily" {{ 'selected' if e and e.tip_mode == 'daily' }}>At the end of every day</option><option value="salary" {{ 'selected' if e and e.tip_mode == 'salary' }}>Accumulated & paid with salary</option></select></div>
+  {% if sup %}
+  <div class="field"><label>Monthly salary ₹</label><input name="salary" type="number" step="100" value="{{ e.salary|int if e else 18000 }}"></div>
+  <div class="field"><label>Commission on own business (%)</label><input name="commission_pct" type="number" step="0.5" value="{{ e.commission_pct if e else 10 }}"></div>
+  <div class="field"><label>Monthly revenue target ₹</label><input name="monthly_target" type="number" step="1000" value="{{ e.monthly_target|int if e else 0 }}"></div>
+  <label class="check"><input type="checkbox" name="takes_appointments" value="1" {{ 'checked' if e and e.takes_appointments }}> Takes appointments (appears in calendar & online booking)</label>
+  <label class="check"><input type="checkbox" name="public_visible" value="1" {{ 'checked' if not e or e.public_visible }}> Show on the public website / booking page</label>
+  {% endif %}
+  <div class="field full"><label>Short bio (shown on website)</label><input name="bio" value="{{ e.bio if e and e.bio else '' }}"></div>
+</div></div>
+
+{% if sup %}<div class="card"><div class="card-h"><h2>{{ ui.icon('lock') }} Access permissions</h2></div>
+  <p class="hint">Decide exactly which parts of the app this person can open. (Employees always have their own portal.) Defaults follow the role – tick to grant more.</p>
+  <div class="form-grid">{% for k, l in perms %}<label class="check"><input type="checkbox" name="perm_{{ k }}" value="1" {{ 'checked' if e and e.has_perm(k) }}> {{ l }}</label>{% endfor %}</div></div>{% endif %}
+<div><button class="btn gold lg">{{ ui.icon('check') }} Save employee</button></div>
+</form>
+{% endblock %}

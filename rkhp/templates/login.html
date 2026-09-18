@@ -1,0 +1,25 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="login-wrap" style="min-height:calc(100vh - 200px)">
+  <div class="card login-card">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="RK Hair Pro" style="width:170px;margin:0 auto 4px;display:block">
+    {% if already %}<div class="flash" style="text-align:left;flex-direction:column;align-items:flex-start;gap:8px">
+      <span>You're signed in as <b class="gold">{{ already.name.split('(')[0] }}</b> ({{ already.role_label }}). Pick another user below to switch, or:</span>
+      <span class="row"><a class="btn sm gold" href="{{ url_for('dash.index') if already.perm_set else url_for('me.home') }}">Continue to dashboard</a><a class="btn sm" href="{{ url_for('auth.logout') }}">Sign out</a></span></div>{% endif %}
+    <h2 style="margin-bottom:4px">Staff sign in</h2>
+    <p class="muted" style="margin-top:0">Use your registered mobile number.</p>
+    <form method="post" style="text-align:left">
+      <div class="field"><label>Mobile number (User ID)</label><input name="mobile" type="tel" inputmode="numeric" autocomplete="username" required autofocus placeholder="10-digit mobile"></div>
+      <div class="field mt-s"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn gold block lg mt">Sign in</button>
+    </form>
+    {% if demo %}
+    <hr class="sep">
+    <div class="muted" style="font-size:.8rem;margin-bottom:6px">DEMO MODE – one-click sign in <span class="faint">(password for all: <b class="gold">{{ pw }}</b>)</span></div>
+    <div class="demo-users">
+      {% for e in demo %}<form method="post" action="{{ url_for('auth.demo_login', eid=e.id) }}"><button type="submit" style="width:100%">{{ e.name.split('(')[0] }}<small>{{ e.role_label }}{% if e.branch %} · {{ e.branch.name }}{% endif %}</small></button></form>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

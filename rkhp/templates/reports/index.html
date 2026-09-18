@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Reports</h1><p>Review, evaluate and plan. Every report works for a day, month-to-date, year-to-date or any custom range – and can be exported to Excel (CSV) or printed.</p></div></div>
+<div class="tabs">{% for k, label, items in groups %}<a class="{{ 'active' if active == k }}" href="?dept={{ k }}">{{ label }} <span class="badge">{{ items|length }}</span></a>{% endfor %}</div>
+{% for k, label, items in groups if k == active %}
+<div class="grid g3">{% for m in items %}<a class="card" href="{{ url_for('rep.view', key=m.key) }}" style="display:block"><div class="card-h" style="margin-bottom:6px"><h3>{{ ui.icon('chart') }} {{ m.title }}</h3></div><p class="muted" style="margin:0">{{ m.desc }}</p>
+  <div class="row mt-s">{% if m.period %}<span class="badge">Day / MTD / YTD</span>{% elif m.month %}<span class="badge">Monthly</span>{% else %}<span class="badge">Live</span>{% endif %}</div></a>{% endfor %}</div>
+{% endfor %}
+<div class="card mt"><div class="card-h"><h3>Suggested review rhythm</h3></div>
+  <div class="grid g3"><div><b class="gold">Daily (5 min)</b><p class="muted" style="margin:4px 0 0">Day close · Day book · Tips report · Tomorrow's bookings · Low stock.</p></div>
+  <div><b class="gold">Weekly (20 min)</b><p class="muted" style="margin:4px 0 0">Employee performance · Cancellations & no-shows · Peak hours · Lapsed clients · Lead conversion.</p></div>
+  <div><b class="gold">Monthly (1 hour)</b><p class="muted" style="margin:4px 0 0">Profit & loss · Balance sheet · Payroll summary · Branch comparison · Target vs actual · Owner scorecard.</p></div></div></div>
+{% endblock %}

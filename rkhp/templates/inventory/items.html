@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Item master</h1><p>Products and consumables used across all branches. Stock and reserve limits are tracked per branch.</p></div>{% if current_user.is_manager %}<button class="btn gold" data-modal="itemModal" data-fill-id="" data-fill-name="">{{ ui.icon('plus') }} Add item</button>{% endif %}</div>
+{% include 'inventory/_tabs.html' %}
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Category</th><th>Unit</th><th class="num">Cost</th><th class="num">Selling price</th><th>Vendor</th><th>Status</th><th></th></tr></thead><tbody>
+{% for i in rows %}<tr><td><b>{{ i.name }}</b> {% if i.is_retail %}<span class="badge gold">retail</span>{% endif %}</td><td>{{ i.category }}</td><td>{{ i.unit }}</td><td class="num">{{ i.cost|inr }}</td><td class="num">{{ i.sell_price|inr if i.is_retail else '—' }}</td><td>{{ i.vendor.name if i.vendor else '—' }}</td><td>{{ ui.badge('Active','ok') if i.active else ui.badge('Off','') }}</td>
+<td>{% if current_user.is_manager %}<button class="btn sm" data-modal="itemModal" data-fill-id="{{ i.id }}" data-fill-name="{{ i.name }}" data-fill-category="{{ i.category or '' }}" data-fill-unit="{{ i.unit }}" data-fill-cost="{{ i.cost }}" data-fill-sell_price="{{ i.sell_price }}" data-fill-is_retail="{{ 1 if i.is_retail else 0 }}" data-fill-vendor_id="{{ i.vendor_id or '' }}" data-fill-active="{{ 1 if i.active else 0 }}">Edit</button>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+<dialog class="modal" id="itemModal"><form method="post"><input type="hidden" name="id"><div class="m-h"><h2>Item</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field span2"><label>Name</label><input name="name" required></div><div class="field"><label>Category</label><input name="category" list="cats" placeholder="Hair care, Colour…"><datalist id="cats"><option>Hair care</option><option>Colour</option><option>Treatment</option><option>Skin</option><option>Disposable</option><option>Retail</option><option>Grooming</option></datalist></div>
+    <div class="field"><label>Unit</label><input name="unit" value="pcs" placeholder="ml, g, pcs"></div><div class="field"><label>Cost price ₹ / unit</label><input name="cost" type="number" step="0.01" value="0"></div>
+    <div class="field"><label>Selling price ₹ (retail)</label><input name="sell_price" type="number" step="1" value="0"></div>
+    <div class="field"><label>Usual vendor</label><select name="vendor_id"><option value="">—</option>{% for v in vendors %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Sold to clients (retail)?</label><select name="is_retail"><option value="0">No – consumable</option><option value="1">Yes – retail product</option></select></div>
+    <div class="field"><label>Reserve limit (new items, all branches)</label><input name="reorder" type="number" step="1" value="10"></div><div class="field"><label>Status</label><select name="active"><option value="1">Active</option><option value="0">Off</option></select></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save item</button></div></form></dialog>
+{% endblock %}

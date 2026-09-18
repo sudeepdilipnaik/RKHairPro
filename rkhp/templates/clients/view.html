@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div class="row"><span class="avatar lg">{{ c.name[0] }}</span><div><h1>{{ c.name }}</h1><p>{{ c.mobile }}{% if c.email %} · {{ c.email }}{% endif %} · {{ c.source or 'Walk-in' }} · client since {{ c.created_at|dfmt }}</p></div></div>
+  <div class="row"><button class="btn" data-modal="editModal">{{ ui.icon('edit') }} Edit</button><button class="btn" data-modal="msgModal">{{ ui.icon('chat') }} WhatsApp</button><a class="btn gold" href="{{ url_for('appt.new') }}?mobile={{ c.mobile }}">{{ ui.icon('plus') }} Book</a></div></div>
+<div class="kpi-grid mb">
+  {{ ui.kpi('Lifetime spend', spent|inr, invs|length|string + ' visits shown') }}{{ ui.kpi('Loyalty points', c.loyalty_points, '1 point per ₹100 spent', plain=True) }}
+  {{ ui.kpi('Birthday', c.dob|dfmt('%d %b') if c.dob else '—', 'Anniversary: ' + (c.anniversary|dfmt('%d %b') if c.anniversary else '—'), plain=True) }}
+</div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('card') }} Bills</h2></div>
+    {% for i in invs %}<a class="list-item" href="{{ url_for('billing.view', iid=i.id) }}"><div class="grow"><b>{{ i.number }}</b><br><small>{{ i.date|dfmt }} · {{ i.branch.name }}</small></div><b>{{ i.grand_total|inr }}</b>{{ ui.status(i.status) }}</a>{% else %}<div class="empty">No bills yet.</div>{% endfor %}</div>
+  <div class="card"><div class="card-h"><h2>{{ ui.icon('calendar') }} Appointments</h2></div>
+    {% for a in appts %}<a class="list-item" href="{{ url_for('appt.view', aid=a.id) }}"><div class="grow"><b>{{ a.start_dt|dfmt }} · {{ a.start_dt|tfmt }}</b><br><small>{{ a.service_names }}</small></div>{{ ui.status(a.status) }}</a>{% else %}<div class="empty">No appointments.</div>{% endfor %}</div>
+</div>
+{% if c.notes %}<div class="card mt"><div class="card-h"><h3>Notes</h3></div>{{ c.notes }}</div>{% endif %}
+
+<dialog class="modal" id="msgModal"><form method="post" action="{{ url_for('clients.message', cid=c.id) }}"><div class="m-h"><h2>WhatsApp {{ c.name }}</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="field"><label>Message</label><textarea name="body" required placeholder="Hi {{ c.name.split()[0] }}, …"></textarea></div><p class="hint">Demo mode: the message appears in the WhatsApp Outbox.</p></div><div class="m-f"><button class="btn gold">{{ ui.icon('send') }} Send</button></div></form></dialog>
+<dialog class="modal" id="editModal"><form method="post" action="{{ url_for('clients.save') }}"><input type="hidden" name="id" value="{{ c.id }}"><div class="m-h"><h2>Edit client</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field"><label>Name</label><input name="name" required value="{{ c.name }}"></div><div class="field"><label>Mobile</label><input name="mobile" required value="{{ c.mobile }}"></div>
+    <div class="field"><label>Email</label><input name="email" value="{{ c.email or '' }}"></div><div class="field"><label>Gender</label><select name="gender"><option value="">—</option><option {{ 'selected' if c.gender == 'Female' }}>Female</option><option {{ 'selected' if c.gender == 'Male' }}>Male</option></select></div>
+    <div class="field"><label>Birthday</label><input name="dob" type="date" value="{{ c.dob.isoformat() if c.dob }}"></div><div class="field"><label>Anniversary</label><input name="anniversary" type="date" value="{{ c.anniversary.isoformat() if c.anniversary }}"></div>
+    <div class="field full"><label>Notes</label><textarea name="notes">{{ c.notes or '' }}</textarea></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

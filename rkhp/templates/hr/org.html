@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% macro node(e) %}
+<li><a class="node" href="{{ url_for('hr.employee_view', eid=e.id) }}">{{ ui.avatar(e) }}<span><b>{{ e.name.split('(')[0] }}</b><br><small>{{ e.designation or e.role_label }}{% if e.home_branch %} · {{ e.home_branch.name }}{% endif %}</small></span>
+  {% if e.takes_appointments %}<span class="badge ok">bookings</span>{% endif %}</a>
+  {% if kids.get(e.id) %}<ul>{% for k in kids[e.id] %}{{ node(k) }}{% endfor %}</ul>{% endif %}</li>
+{% endmacro %}
+{% block content %}
+<div class="page-h"><div><h1>Hierarchy</h1><p>Who reports to whom. Not every employee gets to book appointments or see finance – access is set per person by the Super Admin.</p></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="card org"><ul>{% for r in roots %}{{ node(r) }}{% endfor %}</ul></div>
+<div class="card mt"><div class="card-h"><h3>Role ladder</h3></div><div class="row">
+  {% for k, l in [('super_admin','Super Admin'),('branch_admin','Branch Admin'),('senior_stylist','Senior Stylist'),('stylist','Stylist'),('assistant','Assistant'),('reception','Reception')] %}<span class="badge gold">{{ l }}</span>{% if not loop.last %}<span class="muted">›</span>{% endif %}{% endfor %}</div>
+  <p class="hint mt-s">Branch Admins can raise upgrade / downgrade requests from an employee's profile; the Super Admin approves them under Approvals.</p></div>
+{% endblock %}

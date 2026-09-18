@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Attendance</h1><p>Marked automatically by the face kiosk with date & time. Late marks, early exits, half-days and leaves flow into salary.</p></div>
+  <div class="row"><a class="btn gold" href="{{ url_for('hr.kiosk') }}">{{ ui.icon('camera') }} Open face kiosk</a><form method="get" class="row"><input type="month" name="month" value="{{ ym }}" onchange="this.form.submit()" style="width:170px"></form></div></div>
+{% include 'hr/_tabs.html' %}
+<div class="card mb"><div class="card-h"><h2>Today · {{ today|dfmt('%A, %d %b') }}</h2></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Method</th><th></th></tr></thead><tbody>
+  {% for e, s in sheet %}{% set a = today_rows.get(e.id) %}<tr><td><b>{{ e.name }}</b><br><small>{{ e.role_label }}{% if not scope_branch %} · {{ e.branch.name }}{% endif %}</small></td>
+    <td>{% if a and a.check_in %}{{ a.check_in|tfmt }}{% if a.late_min %} <span class="badge warn">late {{ a.late_min }}m</span>{% endif %}{% else %}—{% endif %}</td>
+    <td>{% if a and a.check_out %}{{ a.check_out|tfmt }}{% if a.early_min %} <span class="badge warn">early {{ a.early_min }}m</span>{% endif %}{% else %}—{% endif %}</td>
+    <td>{% if a %}{{ ui.badge(a.status|replace('_',' ')|title, 'ok' if a.status == 'present' else 'warn') }}{% elif today.weekday() == e.weekly_off %}{{ ui.badge('Weekly off','') }}{% else %}{{ ui.badge('Not yet in','bad') }}{% endif %}</td>
+    <td>{{ ('📷 face' if a.method == 'face' else '✍ manual') if a else '' }}</td>
+    <td><button class="btn sm" data-modal="markModal" data-fill-employee_id="{{ e.id }}" data-fill-date="{{ today.isoformat() }}" data-out-who="{{ e.name }}">Mark / correct</button></td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-h"><h2>Monthly sheet · {{ ym }}</h2><span class="hint">P present · L late · H half-day · A absent · W weekly off · V paid leave · U unpaid leave · O holiday</span></div>
+  <div class="table-wrap"><table class="tbl att"><thead><tr><th>Employee</th>{% for d in days %}<th title="{{ d|dfmt('%a') }}">{{ d.day }}</th>{% endfor %}<th>Late</th><th>Early</th><th>Abs</th></tr></thead><tbody>
+  {% for e, s in sheet %}<tr><td><b>{{ e.name.split()[0] }}</b> <small class="muted">{{ e.role_label }}</small></td>{% for d in days %}{% set v = s.days[d] %}<td><span class="att-{{ v }}">{{ v }}</span></td>{% endfor %}<td>{{ s.late }}</td><td>{{ s.early }}</td><td>{{ s.absent }}</td></tr>{% endfor %}</tbody></table></div></div>
+<dialog class="modal" id="markModal"><form method="post" action="{{ url_for('hr.attendance_mark') }}"><input type="hidden" name="employee_id"><div class="m-h"><h2>Mark attendance – <span class="gold" data-out="who"></span></h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid"><div class="field"><label>Date</label><input type="date" name="date" required></div>
+    <div class="field"><label>Status</label><select name="status"><option value="present">Present</option><option value="half_day">Half day</option><option value="absent">Absent</option><option value="leave">On leave</option><option value="clear">Clear entry</option></select></div>
+    <div class="field"><label>Check-in</label><input type="time" name="check_in"></div><div class="field"><label>Check-out</label><input type="time" name="check_out"></div>
+    <div class="field full"><label>Note</label><input name="note" placeholder="Reason for manual entry (recorded in audit trail)"></div></div></div>
+  <div class="m-f"><button class="btn gold">Save</button></div></form></dialog>
+{% endblock %}

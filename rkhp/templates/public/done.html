@@ -1,0 +1,18 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="pub-wrap"><div class="card done-card">
+  <div class="done-check">{{ ui.icon('check') }}</div>
+  <h1 class="gold-text">You're booked!</h1>
+  <p class="muted">A WhatsApp confirmation has been sent to <b>{{ a.client.mobile }}</b>. We'll remind you 1 hour before.</p>
+  <div class="card flat" style="text-align:left;margin:18px 0">
+    <div class="stat-row"><span>Booking ID</span><b class="gold">{{ a.code }}</b></div>
+    <div class="stat-row"><span>Branch</span><b>{{ a.branch.name }}</b></div>
+    <div class="stat-row"><span>When</span><b>{{ a.start_dt|dfmt('%a, %d %b %Y') }} · {{ a.start_dt|tfmt }}</b></div>
+    <div class="stat-row"><span>Stylist</span><b>{{ a.employee.name if a.employee else 'To be assigned' }}</b></div>
+    <div class="stat-row"><span>Services</span><b>{{ a.service_names }}</b></div>
+    <div class="stat-row"><span>Estimated total</span><b>{{ a.total|inr }}</b></div>
+    <div class="stat-row"><span>Address</span><b style="text-align:right">{{ a.branch.address }}</b></div>
+  </div>
+  <div class="row" style="justify-content:center"><a class="btn gold" href="{{ url_for('public.home') }}">Back to home</a><a class="btn" href="{{ url_for('public.book') }}">Book another</a></div>
+</div></div>
+{% endblock %}

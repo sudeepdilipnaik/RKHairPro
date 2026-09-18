@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Live data & uploads live on each machine (never in git)
+instance/
+uploads/
+
+# Tooling
+.claude/
+*.log
+
+# Keep the ready-made sample database that new installs start from
+!demo_data/
+!demo_data/rkhp_demo.db

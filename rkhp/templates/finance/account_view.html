@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>{{ a.name }}</h1><p>{{ a.type_label }} · {{ a.branch.name if a.branch else 'Company' }} · {{ label }}</p></div><a class="btn" href="{{ url_for('fin.accounts') }}">All accounts</a></div>
+{{ ui.period_bar(key, d1, d2) }}
+<div class="kpi-grid mb">{{ ui.kpi('Opening', opening|inr) }}{{ ui.kpi('Closing', closing|inr) }}{{ ui.kpi('Net movement', (closing - opening)|inr) }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th class="num">Money in</th><th class="num">Money out</th><th class="num">Balance</th></tr></thead><tbody>
+<tr><td colspan="4"><i>Opening balance</i></td><td class="num"><b>{{ opening|inr }}</b></td></tr>
+{% for r in rows %}<tr><td>{{ r.t.date|dfmt('%d %b') }}</td><td>{{ r.t.category.name if r.t.category else 'Transfer' }} · {{ r.t.party or r.t.notes or '' }}</td><td class="num ok">{{ r.dr|inr if r.dr else '' }}</td><td class="num bad">{{ r.cr|inr if r.cr else '' }}</td><td class="num">{{ r.bal|inr }}</td></tr>{% endfor %}
+<tr class="total"><td colspan="4">Closing balance</td><td class="num">{{ closing|inr }}</td></tr></tbody></table></div>
+{% endblock %}

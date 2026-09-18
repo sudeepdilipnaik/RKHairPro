@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>My attendance</h1><p>Marked by the face kiosk. Late marks and early exits affect salary.</p></div><form method="get"><input type="month" name="month" value="{{ ym }}" onchange="this.form.submit()" style="width:170px"></form></div>
+<div class="kpi-grid mb">{{ ui.kpi('Present', s.present, plain=True) }}{{ ui.kpi('Late marks', s.late, plain=True) }}{{ ui.kpi('Early exits', s.early, plain=True) }}{{ ui.kpi('Half days', s.half, plain=True) }}{{ ui.kpi('Absent', s.absent, plain=True) }}{{ ui.kpi('Leave (paid / unpaid)', s.paid_leave|string + ' / ' + s.unpaid_leave|string, plain=True) }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Worked</th></tr></thead><tbody>
+{% for d in days if s.days[d] != '-' %}{% set a = recs.get(d) %}<tr><td>{{ d|dfmt('%a, %d %b') }}</td><td><span class="att-{{ s.days[d] }}"><b>{{ {'P':'Present','L':'Late','H':'Half day','A':'Absent','W':'Weekly off','V':'Paid leave','U':'Unpaid leave','O':'Holiday'}[s.days[d]] }}</b></span></td>
+<td>{{ a.check_in|tfmt if a and a.check_in else '—' }}{% if a and a.late_min %} <span class="badge warn">+{{ a.late_min }}m</span>{% endif %}</td><td>{{ a.check_out|tfmt if a and a.check_out else '—' }}{% if a and a.early_min %} <span class="badge warn">-{{ a.early_min }}m</span>{% endif %}</td><td>{{ (a.worked_min // 60)|string + 'h ' + (a.worked_min % 60)|string + 'm' if a and a.worked_min else '—' }}</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

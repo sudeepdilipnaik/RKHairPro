@@ -1,0 +1,11 @@
+{% set XA = xfer_accounts if xfer_accounts is defined else (S.accounts|map(attribute='acc')|list if S is defined else []) %}
+<dialog class="modal" id="xferModal"><form method="post" action="{{ url_for('fin.transfer') }}">
+  <div class="m-h"><h2>Move money between accounts</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><div class="form-grid">
+    <div class="field"><label>From</label><select name="from_id">{% for a in XA %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>To</label><select name="to_id">{% for a in XA %}<option value="{{ a.id }}" {{ 'selected' if loop.index == 2 }}>{{ a.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Amount ₹</label><input name="amount" type="number" min="1" step="1" required></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="{{ now().date().isoformat() }}"></div>
+    <div class="field full"><label>Note</label><input name="notes" placeholder="e.g. Cash deposited to HDFC, UPI settlement to bank"></div>
+  </div><p class="hint">Transfers move money between your own accounts – they are not income or expense.</p></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Move money</button></div></form></dialog>

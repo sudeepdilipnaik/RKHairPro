@@ -1,0 +1,5 @@
+{% extends 'public/base.html' %}
+{% block content %}
+<div class="pub-wrap"><div class="card done-card"><h1 class="gold-text" style="font-size:3rem">{{ code }}</h1><p class="muted">{{ msg }}</p>
+<div class="row" style="justify-content:center"><a class="btn gold" href="{{ url_for('public.home') }}">Home</a>{% if current_user.is_authenticated %}<a class="btn" href="{{ url_for('dash.index') }}">Dashboard</a>{% endif %}</div></div></div>
+{% endblock %}

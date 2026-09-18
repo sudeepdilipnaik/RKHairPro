@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Payroll</h1><p>Salary = base − deductions (absent, half-days, unpaid leave, late marks, early exits) + {{ '%g'|format(current_user.commission_pct if false else 10) }}% incentive on own service business + approved reimbursements. Tips are paid separately.</p></div>
+  <form method="get" class="row"><input type="month" name="month" value="{{ ym }}" onchange="this.form.submit()" style="width:170px"></form></div>
+{% include 'hr/_tabs.html' %}
+<div class="kpi-grid mb">{{ ui.kpi('Net salaries + incentives', tot.net|inr) }}{{ ui.kpi('Incentives earned', tot.inc|inr) }}{{ ui.kpi('Tips to pay with salary', tot.tips|inr) }}{{ ui.kpi('Pending to pay', tot.pending|inr, 'incl. tips & reimbursements') }}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Employee</th><th class="num">Base</th><th>Attendance</th><th class="num">Deduction</th><th class="num">Service revenue</th><th class="num">Incentive</th><th class="num">Reimb.</th><th class="num">Net salary</th><th class="num">Tips</th><th class="num">Total payable</th><th>Status</th><th></th></tr></thead><tbody>
+{% for p in pays %}<tr><td><b>{{ p.employee.name }}</b><br><small>{{ p.employee.role_label }} · {{ p.branch.name if p.branch }}</small></td><td class="num">{{ p.base_salary|inr }}</td>
+<td><small>{{ p.present_days|int }} P · {{ p.half_days|int }} H · <span class="{{ 'bad' if p.absent_days }}">{{ p.absent_days|int }} A</span><br>{{ p.late_marks }} late · {{ p.early_exits }} early · {{ p.unpaid_leave_days|int }} UL</small></td>
+<td class="num bad">{{ ('-' + p.deduction_amt|inr) if p.deduction_amt else '₹0' }}<br><small class="muted">{{ p.deduction_days }} day(s)</small></td>
+<td class="num">{{ p.service_revenue|inr }}</td><td class="num ok">{{ p.incentive_amt|inr }}</td><td class="num">{{ p.reimb_amt|inr }}</td><td class="num"><b>{{ p.net_salary|inr }}</b></td><td class="num">{{ p.tips_amt|inr }}</td><td class="num"><b class="gold">{{ p.total_payable|inr }}</b></td>
+<td>{% if p.status == 'paid' %}{{ ui.badge('Paid ' + p.paid_on|dfmt('%d %b'), 'ok') }}{% else %}{{ ui.badge('Pending','warn') }}{% endif %}</td>
+<td class="nowrap">{% if p.status != 'paid' %}<button class="btn sm gold" data-modal="payModal" data-action="{{ url_for('hr.payroll_pay', pid=p.id) }}" data-out-who="{{ p.employee.name }}" data-out-amt="{{ (p.net_salary + p.tips_amt)|inr }}">Pay</button>{% else %}<a class="btn sm" href="{{ url_for('hr.payslip', pid=p.id) }}">Payslip</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="12" class="empty">No payroll for this month.</td></tr>{% endfor %}</tbody></table></div>
+<p class="hint mt-s">Per-day rate = salary ÷ 30 (₹600 on ₹18,000). Deduction = absent × 1 + half-days × 0.5 + unpaid leave × 1 + (late marks ÷ 3) × 0.5 + (early exits ÷ 3) × 0.5 days. All rules are editable in Settings → HR & payroll. Paying salary posts to the ledger, notifies the employee in the app and sends a WhatsApp message.</p>
+<dialog class="modal" id="payModal"><form method="post"><div class="m-h"><h2>Pay salary – <span class="gold" data-out="who"></span></h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div>
+  <div class="m-b"><p>Total to transfer: <b class="gold" data-out="amt"></b> <span class="hint">(salary + incentive + reimbursements + accumulated tips)</span></p><div class="form-grid">
+    <div class="field"><label>Paid via</label><select name="mode" id="pmode"><option value="bank">Bank transfer</option><option value="upi">UPI</option><option value="cash">Cash</option></select></div>
+    <div class="field"><label>From account</label><select name="account_id" id="pacct"></select></div><div class="field"><label>Date</label><input type="date" name="date" value="{{ now().date().isoformat() }}"></div></div></div>
+  <div class="m-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold">Pay & notify</button></div></form></dialog>
+{% endblock %}
+{% block scripts %}<script>
+const ACC={{ accounts|map(attribute='id')|list|tojson }}, ACCN={{ accounts|map(attribute='name')|list|tojson }}, ACCT={{ accounts|map(attribute='type')|list|tojson }};
+const pm=document.getElementById('pmode'), pa=document.getElementById('pacct');
+function fill(){pa.innerHTML=ACC.map((id,i)=>ACCT[i]===pm.value?`<option value="${id}">${ACCN[i]}</option>`:'').join('')||'<option value="">default</option>';}
+pm.onchange=fill; fill();
+</script>{% endblock %}

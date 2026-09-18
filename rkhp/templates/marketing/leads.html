@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-h"><div><h1>Lead & enquiry tracker</h1><p>Every Instagram DM, call and walk-in enquiry – with a follow-up date so nothing is lost.</p></div><button class="btn gold" data-modal="leadModal">{{ ui.icon('plus') }} Add lead</button></div>
+{% include 'marketing/_tabs.html' %}
+<div class="pills mb">{% for k, l in [('','All'),('new','New'),('contacted','Contacted'),('booked','Booked'),('lost','Lost')] %}<a class="{{ 'active' if (st or '') == k }}" href="?status={{ k }}">{{ l }}</a>{% endfor %}</div>
+<div class="table-wrap"><table class="tbl"><thead><tr><th>Lead</th><th>Source</th><th>Interested in</th><th>Follow-up</th><th>Status</th><th></th></tr></thead><tbody>
+{% for l in rows %}<tr><td><b>{{ l.name }}</b><br><small>{{ l.mobile or '' }}</small></td><td>{{ l.source }}</td><td>{{ l.interest or '' }}<br><small>{{ l.notes or '' }}</small></td><td class="{{ 'bad' if l.follow_up and l.follow_up < today and l.status in ('new','contacted') }}">{{ l.follow_up|dfmt if l.follow_up else '—' }}</td><td>{{ ui.status(l.status) }}</td>
+<td class="nowrap">{% for s, t in [('contacted','Contacted'),('booked','Booked'),('lost','Lost')] if l.status != s %}<form class="inline" method="post"><input type="hidden" name="id" value="{{ l.id }}"><input type="hidden" name="status" value="{{ s }}"><button class="btn sm">{{ t }}</button></form> {% endfor %}
+ {% if l.mobile %}<a class="btn sm" target="_blank" href="https://wa.me/91{{ l.mobile }}">{{ ui.icon('chat') }}</a>{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="empty">No leads.</td></tr>{% endfor %}</tbody></table></div>
+<dialog class="modal" id="leadModal"><form method="post"><div class="m-h"><h2>New lead</h2><button type="button" class="icon-btn" data-close>{{ ui.icon('x') }}</button></div><div class="m-b"><div class="form-grid"><div class="field"><label>Name</label><input name="name" required></div><div class="field"><label>Mobile</label><input name="mobile"></div>
+  <div class="field"><label>Source</label><select name="source">{% for s in sources %}<option>{{ s }}</option>{% endfor %}</select></div><div class="field"><label>Follow-up on</label><input type="date" name="follow_up"></div>{{ ui.branch_select('branch_id', None, False) }}
+  <div class="field full"><label>Interested in</label><input name="interest" placeholder="Balayage, groom package…"></div><div class="field full"><label>Notes</label><input name="notes"></div></div></div><div class="m-f"><button class="btn gold">Save lead</button></div></form></dialog>
+{% endblock %}
