@@ -2,7 +2,7 @@
 import os
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from sqlalchemy import func
 
 from ..extensions import db
@@ -29,7 +29,7 @@ def home():
     videos = [t for t in q if t.kind == "video"]
     quotes = [t for t in q if t.kind == "text"]
     hv = setting("hero_video")
-    hero_src = (url_for("static", filename="media/rk_logo_animation.mp4") if hv == "default"
+    hero_src = (url_for("public.site_media", name="rk_logo_animation_web.mp4") if hv == "default"
                 else (url_for("public.media", name=hv) if hv else None))
     meet_photo = url_for("public.media", name=setting("site_meet_photo")) if setting("site_meet_photo") else url_for("static", filename="img/owner_small.jpg")
     show = lambda k: setting("site_show_" + k, "1") == "1"      # noqa: E731
@@ -37,6 +37,13 @@ def home():
                            avg=round(avg, 1) if avg else None, n_rev=n_rev or 0, hero_src=hero_src, hero_loop=setting("hero_loop") == "1",
                            hero_sound=setting("hero_sound_btn") == "1", meet_photo=meet_photo, show=show,
                            meet_points=[p.strip() for p in setting("site_meet_points", "").splitlines() if p.strip()], page_title="Premium Unisex Salon")
+
+
+@bp.route("/site-media/<path:name>")
+def site_media(name):
+    """Bundled site media (the logo animation). Served by the app - not the host's static mapping - so phones get
+    byte-range support, which iPhones require and which lets playback start before the file has fully downloaded."""
+    return send_from_directory(os.path.join(current_app.static_folder, "media"), os.path.basename(name), conditional=True, max_age=86400)
 
 
 @bp.route("/media/<path:name>")

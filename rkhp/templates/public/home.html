@@ -13,7 +13,7 @@
         <video id="heroAnim" src="{{ hero_src }}" autoplay muted playsinline preload="auto" {{ 'loop' if hero_loop }} disablepictureinpicture></video>
       </div>{% endif %}
     </div>
-    {% if hero_src and hero_sound %}<button type="button" class="anim-sound" id="animSound" hidden>{{ ui.icon('volume') }} <span>Play with sound</span></button>{% endif %}
+    {% if hero_src %}<button type="button" class="anim-sound" id="animSound" data-sound="{{ 1 if hero_sound else 0 }}" hidden>{{ ui.icon('volume') }} <span>Play with sound</span></button>{% endif %}
     <p class="eyebrow">{{ setting('site_hero_eyebrow') }}</p>
     <h1>{{ setting('site_hero_title') }} <span class="gold-text">{{ setting('site_hero_title_gold') }}</span></h1>
     <p class="lead">{{ setting('site_hero_lead') }}</p>

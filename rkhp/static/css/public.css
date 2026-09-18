@@ -26,9 +26,11 @@ a{transition:color .15s}
 /* logo animation: black-background video blended into the hero, edges feathered */
 .hero-brand{position:relative;display:grid;place-items:center;margin:0 auto}
 .hero-brand.has-anim{width:100%;height:clamp(250px,30vw,380px)}
-.hero-anim{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .9s ease;pointer-events:none;mix-blend-mode:screen;
-  -webkit-mask-image:radial-gradient(ellipse 54% 64% at 50% 50%,#000 52%,transparent 100%);mask-image:radial-gradient(ellipse 54% 64% at 50% 50%,#000 52%,transparent 100%)}
+.hero-anim{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity .9s ease;pointer-events:none;
+  -webkit-mask-image:radial-gradient(ellipse closest-side at 50% 50%,#000 58%,transparent 100%);mask-image:radial-gradient(ellipse closest-side at 50% 50%,#000 58%,transparent 100%)}   /* fades to fully transparent exactly at the box edges */
+.hero2.anim-on .hero-glow{opacity:0!important;animation:none;transition:opacity 1s}   /* the golden glow would show the black video as a dark patch */
 .hero-anim video{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(760px,90vw,1070px);height:auto;max-width:none;filter:contrast(1.32) brightness(1.02)}
+@media (hover:hover) and (pointer:fine){.hero-anim{mix-blend-mode:screen}}   /* blend only on desktop: blend modes on video are unreliable on some phones */
 .hero-brand.playing-anim .hero-anim{opacity:1} .hero-brand.playing-anim .hero-logo{opacity:0}
 .anim-sound{display:inline-flex;align-items:center;gap:8px;margin:2px auto 12px;padding:7px 14px;border-radius:99px;border:1px solid var(--gold-line);background:rgba(212,175,55,.08);color:var(--gold-2);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s}
 .anim-sound:hover{background:var(--gold-soft);border-color:var(--gold)} .anim-sound[hidden]{display:none} .anim-sound svg{width:16px;height:16px}

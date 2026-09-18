@@ -22,21 +22,37 @@
   // hero logo animation: autoplay muted; falls back to the static logo on data-saver / slow networks / reduced motion / blocked autoplay
   var hb = $("#heroBrand"), hv = $("#heroAnim"), snd = $("#animSound");
   if (hb && hv) {
+    var srcStore = hv.getAttribute("src"), label = snd && $("span", snd), soundOpt = !!snd && snd.dataset.sound === "1";
     var conn = navigator.connection || {};
-    var skip = conn.saveData || /(^|-)(2g|3g)$/.test(conn.effectiveType || "") || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-    if (skip) { hv.pause(); hv.removeAttribute("src"); hv.load(); hb.classList.remove("has-anim"); }
-    else {
-      hv.addEventListener("playing", function () { hb.classList.add("playing-anim"); if (snd) snd.hidden = false; });
-      var tryPlay = function () { if (hv.paused && !hv.ended && hv.getAttribute("src")) { var q = hv.play(); if (q && q.catch) q.catch(function () { /* autoplay blocked: keep the static logo */ }); } };
+    var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var skip = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || "") || reduced;
+    // one small button under the logo: "Play logo animation" (autoplay blocked / skipped), "Play with sound", "Sound on – tap to mute"
+    var setBtn = function (mode) {
+      if (!snd) return;
+      var t = { play: "Play logo animation", sound: "Play with sound", mute: "Sound on – tap to mute" }[mode];
+      if (!t) { snd.hidden = true; return; }
+      label.textContent = t; snd.dataset.mode = mode; snd.hidden = false;
+    };
+    var startWithSound = function () {              // runs from a tap, so phones always allow it
+      if (!hv.getAttribute("src")) hv.setAttribute("src", srcStore);
+      hv.muted = false; try { hv.currentTime = 0; } catch (e) { /* not ready yet */ }
+      var p = hv.play();
+      if (p && p.catch) p.catch(function () { hv.muted = true; var p2 = hv.play(); if (p2 && p2.catch) p2.catch(function () {}); });
+    };
+    hv.addEventListener("playing", function () { hb.classList.add("playing-anim"); var hs = hb.closest(".hero2"); if (hs) hs.classList.add("anim-on"); setBtn(hv.muted ? (soundOpt ? "sound" : "") : "mute"); });
+    hv.addEventListener("error", function () { hb.classList.remove("has-anim"); setBtn(""); });
+    if (snd) snd.addEventListener("click", function () {
+      if (snd.dataset.mode === "mute") { hv.muted = true; setBtn(soundOpt ? "sound" : ""); } else { startWithSound(); }
+    });
+    if (skip) {                                      // data-saver / very slow network / reduced-motion: don't download, offer a tap instead
+      hv.pause(); hv.removeAttribute("src"); hv.load(); setBtn("play");
+    } else {
+      var tryPlay = function () { if (hv.paused && !hv.ended && hv.getAttribute("src")) { var q = hv.play(); if (q && q.catch) q.catch(function () { /* autoplay blocked: the tap button below appears */ }); } };
       tryPlay();
       hv.addEventListener("canplay", tryPlay);
       document.addEventListener("visibilitychange", function () { if (!document.hidden) tryPlay(); });
       ["pointerdown", "touchstart", "scroll", "keydown"].forEach(function (ev) { window.addEventListener(ev, tryPlay, { once: true, passive: true }); });
-      if (snd) snd.addEventListener("click", function () {
-        var withSound = hv.muted; hv.muted = !withSound;
-        snd.querySelector("span").textContent = withSound ? "Sound on – tap to mute" : "Play with sound";
-        if (withSound) { hv.currentTime = 0; var p2 = hv.play(); if (p2 && p2.catch) p2.catch(function () { hv.muted = true; }); }
-      });
+      setTimeout(function () { if (hv.paused && !hb.classList.contains("playing-anim")) setBtn("play"); }, 3500);   // still not playing: let the visitor start it
     }
   }
 

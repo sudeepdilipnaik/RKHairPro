@@ -23,8 +23,8 @@ def _back(tab):
 def hero_info():
     hv = setting("hero_video")
     if hv == "default":
-        path = os.path.join(current_app.static_folder, "media", "rk_logo_animation.mp4")
-        src, label = url_for("static", filename="media/rk_logo_animation.mp4"), "Original RK Hair Pro logo animation"
+        path = os.path.join(current_app.static_folder, "media", "rk_logo_animation_web.mp4")
+        src, label = url_for("public.site_media", name="rk_logo_animation_web.mp4"), "Original RK Hair Pro logo animation (web-optimised)"
     elif hv:
         path = os.path.join(web_dir(), os.path.basename(hv))
         src, label = url_for("public.media", name=hv), "Uploaded animation"
