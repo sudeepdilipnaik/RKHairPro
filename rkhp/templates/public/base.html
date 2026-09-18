@@ -27,6 +27,7 @@
     <a href="{{ url_for('public.home') }}#team" class="nl">Stylists</a>
     <a href="{{ url_for('public.home') }}#branches" class="nl">Branches</a>
     <a href="{{ url_for('auth.login') }}" class="staff nl">Staff login</a>
+    <a class="btn staff-icon" href="{{ url_for('auth.login') }}" aria-label="Staff login" title="Staff login">{{ ui.icon('user') }}<span>Staff</span></a>
     <button type="button" class="btn call-btn js-call" data-modal="callModal">{{ ui.icon('phone') }}<span>Call</span></button>
     <a class="btn gold book-btn" href="{{ url_for('public.book') }}">Book now</a>
   </nav>
